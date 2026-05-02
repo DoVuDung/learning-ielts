@@ -9,7 +9,8 @@ interface LessonGridProps {
   lessons: VideoCardProps[];
 }
 
-export function LessonGrid({ title, count, href, lessons }: LessonGridProps) {
+export function LessonGrid({ title, count, href, lessons }: Readonly<LessonGridProps>) {
+  if (lessons.length === 0) return null;
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -20,19 +21,15 @@ export function LessonGrid({ title, count, href, lessons }: LessonGridProps) {
           )}
         </h2>
         {href && (
-          <Link
-            href={href}
-            className="flex items-center gap-0.5 text-sm text-primary font-medium hover:underline"
-          >
+          <Link href={href} className="flex items-center gap-0.5 text-sm text-primary font-medium hover:underline">
             Xem thêm
             <ChevronRight className="size-4" />
           </Link>
         )}
       </div>
-
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {lessons.map((lesson, i) => (
-          <VideoCard key={i} {...lesson} />
+        {lessons.map((lesson) => (
+          <VideoCard key={lesson.id} {...lesson} />
         ))}
       </div>
     </section>

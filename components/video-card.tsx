@@ -1,16 +1,17 @@
+import Link from "next/link";
 import Image from "next/image";
 import { Clock, Layers } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export interface VideoCardProps {
+  id: string;
   title: string;
-  thumbnail: string;
-  duration: string;
+  thumbnailUrl: string;
+  duration: number; // seconds
   segments: number;
-  level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+  level: string;
   isNew?: boolean;
-  source?: string;
+  href?: string; // override default /dictation/[id]
 }
 
 const levelColors: Record<string, string> = {
@@ -22,51 +23,52 @@ const levelColors: Record<string, string> = {
   C2: "bg-red-700",
 };
 
+function fmtDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  return `${m} phút`;
+}
+
 export function VideoCard({
+  id,
   title,
-  thumbnail,
+  thumbnailUrl,
   duration,
   segments,
   level,
   isNew,
-}: VideoCardProps) {
+  href,
+}: Readonly<VideoCardProps>) {
   return (
-    <div className="group flex flex-col gap-2 cursor-pointer">
-      {/* Thumbnail */}
+    <Link
+      href={href ?? `/dictation/${id}`}
+      className="group flex flex-col gap-2 cursor-pointer"
+    >
       <div className="relative rounded-xl overflow-hidden aspect-video bg-muted">
         <Image
-          src={thumbnail}
+          src={thumbnailUrl}
           alt={title}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
         />
-
-        {/* Top-left level badge */}
         <span
           className={cn(
             "absolute top-2 left-2 text-white text-[10px] font-bold px-1.5 py-0.5 rounded",
-            levelColors[level] ?? "bg-muted"
+            levelColors[level] ?? "bg-muted",
           )}
         >
           {level}
         </span>
-
-        {/* Top-right NEW badge */}
         {isNew && (
           <span className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
             MỚI
           </span>
         )}
-
-        {/* Bottom duration pill */}
         <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-0.5 rounded-full">
           <Clock className="size-3" />
-          {duration}
+          {fmtDuration(duration)}
         </div>
       </div>
-
-      {/* Meta */}
       <div className="flex flex-col gap-1 px-0.5">
         <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
           {title}
@@ -76,6 +78,6 @@ export function VideoCard({
           {segments} phần đoạn
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

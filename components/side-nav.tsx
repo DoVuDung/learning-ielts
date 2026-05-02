@@ -75,9 +75,9 @@ export function SideNav() {
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-5">
         <div className="flex items-center justify-center size-8 rounded-lg bg-primary">
-          <span className="text-white font-bold text-sm">S</span>
+          <span className="text-white font-bold text-sm">B</span>
         </div>
-        <span className="text-foreground font-bold text-lg tracking-tight">SENGLISH</span>
+        <span className="text-foreground font-bold text-lg tracking-tight">BapEnglish</span>
       </div>
 
       <Separator className="bg-sidebar-border" />

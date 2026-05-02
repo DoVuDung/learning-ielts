@@ -1,0 +1,7 @@
+{
+  "sonarlint.connectedMode.project": {
+    "connectionId": "dovudung",
+    "projectKey": "DoVuDung_learning-ielts"
+  },
+  "prisma.pinToPrisma6": true
+}

@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  googleId  String   @unique
+  email     String   @unique
+  name      String
+  avatarUrl String?
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  videos     Video[]
+  progress   DictationProgress[]
+  savedWords SavedWord[]
+}
+
+model Video {
+  id           String   @id @default(cuid())
+  youtubeId    String   @unique
+  title        String
+  thumbnailUrl String
+  duration     Int      // seconds
+  category     String   @default("general")
+  level        String   @default("B2") // A1 A2 B1 B2 C1 C2
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  createdBy  User       @relation(fields: [createdById], references: [id])
+  sentences  Sentence[]
+  progress   DictationProgress[]
+}
+
+model Sentence {
+  id      String @id @default(cuid())
+  videoId String
+  index   Int
+  startMs Int
+  endMs   Int
+  text    String
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, index])
+}
+
+model DictationProgress {
+  id             String    @id @default(cuid())
+  userId         String
+  videoId        String
+  sentencesDone  Int       @default(0)
+  totalSentences Int       @default(0)
+  completedAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id])
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+}
+
+model SavedWord {
+  id        String   @id @default(cuid())
+  userId    String
+  word      String
+  context   String?  // sentence the word was found in
+  videoId   String?  // source video
+  nextReview DateTime @default(now())
+  interval  Int      @default(1) // days until next review (SRS)
+  easeFactor Float   @default(2.5)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, word])
+}

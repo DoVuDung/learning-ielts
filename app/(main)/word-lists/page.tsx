@@ -1,16 +1,25 @@
-import { BookMarked } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { TopNav } from "@/components/top-nav";
-import { ComingSoon } from "@/components/coming-soon";
+import { WordListClient } from "./word-list-client";
 
-export default function WordListsPage() {
+export default async function WordListsPage() {
+  const session = await getSession();
+
+  const words = session
+    ? await prisma.savedWord.findMany({
+        where: { userId: session.sub },
+        orderBy: { createdAt: "desc" },
+      })
+    : [];
+
   return (
     <>
-      <TopNav title="Danh sách từ" subtitle="Quản lý danh sách từ vựng của bạn" />
-      <ComingSoon
-        icon={BookMarked}
-        title="Danh sách từ đang trống"
-        description="Trong quá trình luyện dictation, bạn có thể lưu những từ mới vào đây để ôn tập sau. Danh sách của bạn sẽ hiển thị tại đây."
+      <TopNav
+        title="Danh sách từ"
+        subtitle={`${words.length} từ đã lưu`}
       />
+      <WordListClient initialWords={words} />
     </>
   );
 }

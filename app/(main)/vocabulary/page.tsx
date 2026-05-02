@@ -1,16 +1,39 @@
-import { BookOpen } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { TopNav } from "@/components/top-nav";
-import { ComingSoon } from "@/components/coming-soon";
+import { FlashcardReview } from "./flashcard-review";
+import { BookOpen } from "lucide-react";
 
-export default function VocabularyPage() {
+export default async function VocabularyPage() {
+  const session = await getSession();
+
+  const due = session
+    ? await prisma.savedWord.findMany({
+        where: {
+          userId: session.sub,
+          nextReview: { lte: new Date() },
+        },
+        orderBy: { nextReview: "asc" },
+      })
+    : [];
+
   return (
     <>
-      <TopNav title="Luyện từ vựng" subtitle="Học từ vựng qua thẻ ghi nhớ thông minh" />
-      <ComingSoon
-        icon={BookOpen}
-        title="Luyện từ vựng đang được phát triển"
-        description="Tính năng luyện từ vựng sẽ sử dụng phương pháp Spaced Repetition giúp bạn ghi nhớ từ vựng hiệu quả và lâu dài."
+      <TopNav
+        title="Luyện từ vựng"
+        subtitle={due.length > 0 ? `${due.length} từ cần ôn tập hôm nay` : "Không có từ nào cần ôn"}
       />
+      {due.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+          <BookOpen className="size-10 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">Không có từ nào cần ôn tập hôm nay.</p>
+          <p className="text-xs text-muted-foreground">
+            Lưu từ trong dictation → ôn tại đây theo hệ thống Spaced Repetition.
+          </p>
+        </div>
+      ) : (
+        <FlashcardReview words={due} />
+      )}
     </>
   );
 }
