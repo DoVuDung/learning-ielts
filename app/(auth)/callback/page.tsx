@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function AuthCallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -14,10 +14,13 @@ export default function AuthCallbackPage() {
       router.replace("/login?error=auth_failed");
       return;
     }
-    // Token is set as HttpOnly cookie by the API route — just go home
     router.replace("/dictation");
   }, [router, searchParams]);
 
+  return null;
+}
+
+function LoadingUI() {
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-sm">
       <div className="flex items-center justify-center size-12 rounded-2xl bg-primary/10 border border-primary/20">
@@ -35,5 +38,14 @@ export default function AuthCallbackPage() {
         <Skeleton className="h-4 w-1/2 mx-auto" />
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingUI />}>
+      <CallbackHandler />
+      <LoadingUI />
+    </Suspense>
   );
 }
