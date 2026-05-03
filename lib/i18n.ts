@@ -1,0 +1,138 @@
+export type Locale = "en" | "vi";
+
+export const messages = {
+  en: {
+    // Shared
+    progress: "Progress",
+    transcript: "Transcript",
+    showAll: "Show all",
+    hideAll: "Hide all",
+    show: "Show",
+    hide: "Hide",
+    // Shadowing
+    dragResize: "drag to resize",
+    step1: "Listen",
+    step2: "Click words",
+    step3: "Next",
+    replay: "Replay",
+    revealAll: "Reveal all",
+    doneNext: "Done, next",
+    howToPractice: "How to practice",
+    tip1: "Listen → repeat → click each word to check",
+    tip2: "Forgot a word? Click to reveal → repeat again",
+    tip3Pre: "Press",
+    tip3Post: "when you can repeat confidently",
+    // WordRevealChips
+    sentencePrefix: "Sentence",
+    wordsUnit: "words",
+    completed: "✓ Done",
+    seeAll: "See all",
+    chipHint: "Click to reveal",
+    repeatPrompt: "Repeat the sentence above → then press",
+    // Dictation controls
+    wordCountUnit: "words",
+    replayShortcut: "replay",
+    nextShortcut: "next",
+    autoNext: "Auto next",
+    hideTranscriptLabel: "Hide transcript",
+    replayBtn: "Replay",
+    hintBtn: "Hint word",
+    showAnswerBtn: "Show answer",
+    // Dictation legend
+    legendCorrect: "Correct",
+    legendWrong: "Wrong",
+    legendTyping: "Typing",
+    saveHint: "Click a word to save to dictionary",
+    // Dictation status messages
+    correctMsg: "Correct!",
+    autoNextMsg: "Moving to next…",
+    pressEnterMsg: "Press Enter or → to continue",
+    revealedMsg: "Answer shown — listen and practice again",
+    wrongMsgPre: "Some words wrong — check again or press",
+    wrongMsgPost: "to see each word",
+    firstLetters: "First letters:",
+    // Dictation buttons
+    checkBtn: "Check",
+    nextBtn: "Next",
+    inputPlaceholder: "Type what you hear… (Tab = replay, Enter = next)",
+    // VocabPopover
+    addVocab: "Add vocabulary",
+    saving: "Saving…",
+    saved: "Saved!",
+    saveBtn: "Save to dictionary",
+    // Speaking chat
+    topicsLabel: "TOPICS",
+    speakingTip1: "AI asks questions, you answer in English",
+    speakingTip2: "AI corrects grammar and vocabulary errors",
+    speakingTip3: "Practice naturally like a real conversation",
+    startConversation: "Start conversation",
+  },
+  vi: {
+    // Shared
+    progress: "Tiến độ",
+    transcript: "Transcript",
+    showAll: "Hiện tất cả",
+    hideAll: "Ẩn tất cả",
+    show: "Hiện",
+    hide: "Ẩn",
+    // Shadowing
+    dragResize: "kéo để thay đổi kích thước",
+    step1: "Nghe câu",
+    step2: "Click từng từ",
+    step3: "Tiếp theo",
+    replay: "Nghe lại",
+    revealAll: "Reveal all",
+    doneNext: "Xong, tiếp theo",
+    howToPractice: "Cách luyện",
+    tip1: "Nghe câu → lặp lại → click từng từ để kiểm tra",
+    tip2: "Nếu không nhớ từ nào, click để xem → lặp lại lần nữa",
+    tip3Pre: "Nhấn",
+    tip3Post: "khi đã lặp lại tự tin",
+    // WordRevealChips
+    sentencePrefix: "Câu",
+    wordsUnit: "từ",
+    completed: "✓ Hoàn thành",
+    seeAll: "Xem tất cả",
+    chipHint: "Click để xem từ",
+    repeatPrompt: "Lặp lại câu trên → rồi nhấn",
+    // Dictation controls
+    wordCountUnit: "từ",
+    replayShortcut: "phát lại",
+    nextShortcut: "tiếp theo",
+    autoNext: "Tự động tiếp",
+    hideTranscriptLabel: "Ẩn transcript",
+    replayBtn: "Phát lại",
+    hintBtn: "Gợi ý từ",
+    showAnswerBtn: "Xem đáp án",
+    // Dictation legend
+    legendCorrect: "Đúng",
+    legendWrong: "Sai",
+    legendTyping: "Đang gõ",
+    saveHint: "Click từ để lưu vào từ điển",
+    // Dictation status messages
+    correctMsg: "Chính xác!",
+    autoNextMsg: "Tự động chuyển câu…",
+    pressEnterMsg: "Nhấn Enter hoặc → để tiếp tục",
+    revealedMsg: "Đã xem đáp án — nghe lại và luyện tiếp",
+    wrongMsgPre: "Có từ sai — kiểm tra lại hoặc nhấn",
+    wrongMsgPost: "để xem từng từ",
+    firstLetters: "Chữ cái đầu:",
+    // Dictation buttons
+    checkBtn: "Kiểm tra",
+    nextBtn: "Tiếp theo",
+    inputPlaceholder: "Gõ câu bạn nghe được… (Tab = phát lại, Enter = tiếp theo)",
+    // VocabPopover
+    addVocab: "Thêm từ vựng",
+    saving: "Đang lưu…",
+    saved: "Đã lưu!",
+    saveBtn: "Lưu vào từ điển",
+    // Speaking chat
+    topicsLabel: "CHỦ ĐỀ",
+    speakingTip1: "AI sẽ đặt câu hỏi, bạn trả lời bằng tiếng Anh",
+    speakingTip2: "AI phản hồi và sửa lỗi ngữ pháp / từ vựng",
+    speakingTip3: "Luyện tập tự nhiên như hội thoại thật",
+    startConversation: "Bắt đầu hội thoại",
+  },
+} as const;
+
+export type Messages = typeof messages.en;

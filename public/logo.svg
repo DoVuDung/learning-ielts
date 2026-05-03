@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Background circle -->
+  <circle cx="24" cy="24" r="24" fill="url(#grad)"/>
+  <!-- Sound wave bars (dictation/audio theme) -->
+  <rect x="10" y="20" width="4" height="8" rx="2" fill="white" opacity="0.6"/>
+  <rect x="16" y="14" width="4" height="20" rx="2" fill="white" opacity="0.8"/>
+  <rect x="22" y="10" width="4" height="28" rx="2" fill="white"/>
+  <rect x="28" y="14" width="4" height="20" rx="2" fill="white" opacity="0.8"/>
+  <rect x="34" y="20" width="4" height="8" rx="2" fill="white" opacity="0.6"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E91E63"/>
+      <stop offset="100%" stop-color="#9C27B0"/>
+    </linearGradient>
+  </defs>
+</svg>

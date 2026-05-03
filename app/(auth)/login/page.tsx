@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="w-full max-w-sm flex flex-col gap-8">
+    <div className="w-full flex flex-col gap-8">
       {/* Logo */}
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center justify-center size-12 rounded-2xl bg-primary shadow-lg shadow-primary/30">

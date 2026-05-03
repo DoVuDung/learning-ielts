@@ -5,6 +5,7 @@ import { Send, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/locale-context";
 
 const TOPICS = [
   { id: "daily", label: "Daily Life", prompt: "Talk about your daily routine, hobbies, and lifestyle" },
@@ -20,11 +21,13 @@ const TOPICS = [
 type Message = { role: "user" | "assistant"; content: string };
 
 export function SpeakingChat() {
+  const { t } = useLocale();
   const [topic, setTopic] = useState(TOPICS[0]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [started, setStarted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -32,23 +35,25 @@ export function SpeakingChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function startConversation() {
-    setStarted(true);
-    setMessages([]);
-    setStreaming(true);
-
-    const seed: Message[] = [{ role: "user", content: `Let's practice speaking English. Topic: ${topic.prompt}. Please start the conversation with a question.` }];
-
+  async function streamResponse(msgs: Message[]) {
     const res = await fetch("/api/speaking", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: seed, topic: topic.label }),
+      body: JSON.stringify({ messages: msgs, topic: topic.label }),
     });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      setError(errText || `Error ${res.status}`);
+      setStreaming(false);
+      return;
+    }
 
     if (!res.body) { setStreaming(false); return; }
 
+    setError(null);
     let text = "";
-    setMessages([{ role: "assistant", content: "" }]);
+    setMessages([...msgs, { role: "assistant", content: "" }]);
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
 
@@ -56,56 +61,45 @@ export function SpeakingChat() {
       const { done, value } = await reader.read();
       if (done) break;
       text += decoder.decode(value, { stream: true });
-      setMessages([{ role: "assistant", content: text }]);
+      setMessages([...msgs, { role: "assistant", content: text }]);
     }
 
     setStreaming(false);
     inputRef.current?.focus();
   }
 
+  async function startConversation() {
+    setStarted(true);
+    setMessages([]);
+    setStreaming(true);
+    const seed: Message[] = [{
+      role: "user",
+      content: `Let's practice speaking English. Topic: ${topic.prompt}. Please start the conversation with a question.`,
+    }];
+    await streamResponse(seed);
+  }
+
   async function send() {
     if (!input.trim() || streaming) return;
-    const userMsg: Message = { role: "user", content: input.trim() };
-    const next = [...messages, userMsg];
+    const next: Message[] = [...messages, { role: "user", content: input.trim() }];
     setMessages(next);
     setInput("");
     setStreaming(true);
-
-    const res = await fetch("/api/speaking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: next, topic: topic.label }),
-    });
-
-    if (!res.body) { setStreaming(false); return; }
-
-    let text = "";
-    setMessages([...next, { role: "assistant", content: "" }]);
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      text += decoder.decode(value, { stream: true });
-      setMessages([...next, { role: "assistant", content: text }]);
-    }
-
-    setStreaming(false);
-    inputRef.current?.focus();
+    await streamResponse(next);
   }
 
   function reset() {
     setStarted(false);
     setMessages([]);
     setInput("");
+    setError(null);
   }
 
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* Sidebar: topic picker */}
       <aside className="w-56 shrink-0 border-r border-border flex flex-col gap-1 p-3 overflow-y-auto">
-        <p className="text-[10px] font-semibold text-muted-foreground tracking-widest px-2 mb-1">CHỦ ĐỀ</p>
+        <p className="text-[10px] font-semibold text-muted-foreground tracking-widest px-2 mb-1">{t.topicsLabel}</p>
         {TOPICS.map((t) => (
           <button
             key={t.id}
@@ -131,13 +125,13 @@ export function SpeakingChat() {
               <p className="text-sm text-muted-foreground max-w-xs">{topic.prompt}</p>
             </div>
             <div className="rounded-lg bg-primary/5 border border-primary/20 px-5 py-4 max-w-sm text-xs text-muted-foreground flex flex-col gap-1.5">
-              <p className="text-primary font-medium mb-1">Cách luyện</p>
-              <p>• AI sẽ đặt câu hỏi, bạn trả lời bằng tiếng Anh</p>
-              <p>• AI phản hồi và sửa lỗi ngữ pháp / từ vựng</p>
-              <p>• Luyện tập tự nhiên như hội thoại thật</p>
+              <p className="text-primary font-medium mb-1">{t.howToPractice}</p>
+              <p>• {t.speakingTip1}</p>
+              <p>• {t.speakingTip2}</p>
+              <p>• {t.speakingTip3}</p>
             </div>
             <Button onClick={startConversation} className="gap-2 px-8">
-              Bắt đầu hội thoại
+              {t.startConversation}
             </Button>
           </div>
         ) : (
@@ -164,6 +158,11 @@ export function SpeakingChat() {
                   </div>
                 </div>
               ))}
+              {error && (
+                <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-4 py-3 text-sm text-rose-400">
+                  ⚠ {error}
+                </div>
+              )}
               <div ref={bottomRef} />
             </div>
 
