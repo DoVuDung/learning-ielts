@@ -28,7 +28,23 @@ const DEFAULT_H = 200;
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 export function clean(s: string) {
-  return s.toLowerCase().replaceAll(/[^a-z0-9']/g, "");
+  return s.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
+}
+
+const NUMBER_WORDS: Record<string, string> = {
+  zero: "0", one: "1", two: "2", three: "3", four: "4", five: "5",
+  six: "6", seven: "7", eight: "8", nine: "9", ten: "10",
+  eleven: "11", twelve: "12", thirteen: "13", fourteen: "14", fifteen: "15",
+  sixteen: "16", seventeen: "17", eighteen: "18", nineteen: "19",
+  twenty: "20", thirty: "30", forty: "40", fifty: "50",
+  sixty: "60", seventy: "70", eighty: "80", ninety: "90",
+  hundred: "100", thousand: "1000", million: "1000000",
+};
+
+/** Normalize a single token for comparison: strip punctuation, collapse number forms */
+export function normalize(s: string): string {
+  const lower = s.toLowerCase().replace(/,/g, "").replace(/[^a-z0-9]/g, "");
+  return NUMBER_WORDS[lower] ?? lower;
 }
 
 export function splitWords(text: string): string[] {
@@ -127,6 +143,7 @@ interface WordGridProps {
   context: string;
   videoId: string;
   t: Messages;
+  checked: boolean;
   onSaved: (word: string) => void;
 }
 
@@ -136,6 +153,7 @@ function WordGrid({
   context,
   videoId,
   t,
+  checked,
   onSaved,
 }: WordGridProps) {
   const [popover, setPopover] = useState<{
@@ -200,7 +218,9 @@ function WordGrid({
                   "bg-primary/10 border-primary/40 text-transparent",
                 w.status === "correct" &&
                   "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-                w.status === "wrong" &&
+                w.status === "wrong" && !checked &&
+                  "bg-rose-500/10 border-rose-500/30 text-transparent",
+                w.status === "wrong" && checked &&
                   "bg-rose-500/10 border-rose-500/30 text-rose-300",
                 w.status === "revealed" &&
                   "bg-amber-500/10 border-amber-500/30 text-amber-300",
@@ -209,7 +229,7 @@ function WordGrid({
                 minWidth: `${Math.max(clean(w.expected).length * 8, 20)}px`,
               }}
             >
-              {w.status === "pending" || w.status === "active"
+              {w.status === "pending" || w.status === "active" || (w.status === "wrong" && !checked)
                 ? "•".repeat(Math.max(clean(w.expected).length, 1))
                 : w.expected}
             </span>
@@ -268,6 +288,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
   const startY = useRef(0);
   const startH = useRef(DEFAULT_H);
   const autoNextTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoPauseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const sentence = sentences[current];
   const expectedWords = splitWords(sentence.text);
@@ -288,7 +309,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
       if (i < typedDone.length) {
         const typed = typedDone[i] ?? "";
         const status: WordStatus =
-          clean(typed) === clean(expected) ? "correct" : "wrong";
+          normalize(typed) === normalize(expected) ? "correct" : "wrong";
         return { expected, typed, status };
       }
       if (i === typedDone.length && (partial || raw.length > 0)) {
@@ -301,26 +322,40 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
   const correctCount = wordStates.filter((w) => w.status === "correct").length;
   const allCorrect = !revealed && correctCount === expectedWords.length;
 
-  // ── Seek ───────────────────────────────────────────────────────────────
-  const seekTo = useCallback((ms: number) => {
+  // ── Player commands ────────────────────────────────────────────────────
+  const sendCommand = useCallback((func: string, args: unknown[] = []) => {
     playerRef.current?.contentWindow?.postMessage(
-      JSON.stringify({
-        event: "command",
-        func: "seekTo",
-        args: [Math.floor(ms / 1000), true],
-      }),
+      JSON.stringify({ event: "command", func, args }),
       "https://www.youtube.com",
     );
   }, []);
 
+  const seekTo = useCallback((ms: number) => {
+    sendCommand("seekTo", [Math.floor(ms / 1000), true]);
+  }, [sendCommand]);
+
+  /** Schedule auto-pause at the end of a sentence */
+  const scheduleAutoPause = useCallback((s: typeof sentence) => {
+    if (autoPauseTimer.current) clearTimeout(autoPauseTimer.current);
+    const duration = s.endMs - s.startMs;
+    if (duration > 0) {
+      autoPauseTimer.current = setTimeout(() => {
+        sendCommand("pauseVideo");
+      }, duration + 300);
+    }
+  }, [sendCommand]);
+
   // ── Navigate to sentence (resets all input state) ─────────────────────
   function goTo(index: number) {
     if (autoNextTimer.current) clearTimeout(autoNextTimer.current);
+    if (autoPauseTimer.current) clearTimeout(autoPauseTimer.current);
     setCurrent(index);
     setRaw("");
     setChecked(false);
     setRevealed(false);
-    seekTo(sentences[index].startMs);
+    const s = sentences[index];
+    seekTo(s.startMs);
+    scheduleAutoPause(s);
     requestAnimationFrame(() => {
       transcriptItemRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -332,6 +367,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
 
   function replay() {
     seekTo(sentence.startMs);
+    scheduleAutoPause(sentence);
     inputRef.current?.focus();
   }
 
@@ -433,7 +469,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
     const justAllCorrect =
       typedDone.length === expectedWords.length &&
       next.endsWith(" ") &&
-      typedDone.every((w, i) => clean(w) === clean(expectedWords[i]));
+      typedDone.every((w, i) => normalize(w) === normalize(expectedWords[i]));
 
     if (justAllCorrect) {
       if (current + 1 > done) {
@@ -587,6 +623,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
               context={sentence.text}
               videoId={video.id}
               t={t}
+              checked={checked}
               onSaved={onSaved}
             />
 
@@ -773,7 +810,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
                   <p
                     className={cn(
                       "text-xs leading-relaxed",
-                      hideTranscript && !isPast && !isCurrent
+                      hideTranscript && !isPast
                         ? "blur-sm select-none"
                         : "text-foreground",
                     )}

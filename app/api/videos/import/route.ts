@@ -41,8 +41,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid YouTube URL" }, { status: 400 });
   }
 
-  // Check duplicate
-  const existing = await prisma.video.findUnique({ where: { youtubeId } });
+  // Check duplicate for this user
+  const existing = await prisma.video.findFirst({
+    where: { youtubeId, createdById: session.sub },
+    include: { _count: { select: { sentences: true } } },
+  });
   if (existing) return NextResponse.json(existing);
 
   const [meta, rawTranscript] = await Promise.all([

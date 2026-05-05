@@ -23,7 +23,7 @@ model User {
 
 model Video {
   id           String   @id @default(cuid())
-  youtubeId    String   @unique
+  youtubeId    String
   title        String
   thumbnailUrl String
   duration     Int      // seconds
@@ -35,6 +35,8 @@ model Video {
   createdBy  User       @relation(fields: [createdById], references: [id])
   sentences  Sentence[]
   progress   DictationProgress[]
+
+  @@unique([youtubeId, createdById])
 }
 
 model Sentence {
