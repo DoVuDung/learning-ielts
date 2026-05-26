@@ -16,9 +16,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  videos     Video[]
-  progress   DictationProgress[]
-  savedWords SavedWord[]
+  videos   Video[]
+  progress DictationProgress[]
+  notes    Note[]
+  cards    Card[]
 }
 
 model Video {
@@ -67,18 +68,73 @@ model DictationProgress {
   @@unique([userId, videoId])
 }
 
-model SavedWord {
-  id        String   @id @default(cuid())
-  userId    String
-  word      String
-  context   String?  // sentence the word was found in
-  videoId   String?  // source video
-  nextReview DateTime @default(now())
-  interval  Int      @default(1) // days until next review (SRS)
-  easeFactor Float   @default(2.5)
-  createdAt DateTime @default(now())
+enum CardState {
+  NEW
+  LEARNING
+  REVIEW
+  RELEARNING
+}
 
-  user User @relation(fields: [userId], references: [id])
+enum CardTemplate {
+  WORD_TO_MEANING
+  MEANING_TO_WORD
+  LISTENING
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  userId     String
+  word       String
+  definition String?
+  context    String?
+  videoId    String?
+  tags       String[] @default([])
+  createdAt  DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  cards Card[]
 
   @@unique([userId, word])
+}
+
+model Card {
+  id            String       @id @default(cuid())
+  noteId        String
+  userId        String
+  template      CardTemplate @default(WORD_TO_MEANING)
+  state         CardState    @default(NEW)
+  due           DateTime     @default(now())
+  stability     Float        @default(0)
+  difficulty    Float        @default(0)
+  elapsedDays   Int          @default(0)
+  scheduledDays Int          @default(0)
+  reps          Int          @default(0)
+  lapses        Int          @default(0)
+  lastReview    DateTime?
+  createdAt     DateTime     @default(now())
+
+  note    Note        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+  reviews ReviewLog[]
+
+  @@unique([noteId, template])
+  @@index([userId, due])
+  @@index([userId, state])
+}
+
+model ReviewLog {
+  id            String    @id @default(cuid())
+  cardId        String
+  rating        Int
+  state         CardState
+  due           DateTime
+  stability     Float
+  difficulty    Float
+  elapsedDays   Int
+  scheduledDays Int
+  reviewedAt    DateTime  @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId, reviewedAt])
 }
