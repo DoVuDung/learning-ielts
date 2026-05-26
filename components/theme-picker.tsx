@@ -25,7 +25,10 @@ export function useTheme() {
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") as ThemeId | null;
-    if (saved && THEMES.some((t) => t.id === saved)) setActive(saved);
+    if (saved && THEMES.some((t) => t.id === saved)) {
+      setActive(saved);
+      document.documentElement.setAttribute("data-theme", saved);
+    }
   }, []);
 
   function apply(id: ThemeId) {

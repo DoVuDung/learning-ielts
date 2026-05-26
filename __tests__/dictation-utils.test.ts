@@ -8,9 +8,9 @@ describe("clean()", () => {
     expect(clean("test.")).toBe("test");
   });
 
-  it("keeps apostrophes", () => {
-    expect(clean("don't")).toBe("don't");
-    expect(clean("it's")).toBe("it's");
+  it("strips apostrophes (normalises contractions for matching)", () => {
+    expect(clean("don't")).toBe("dont");
+    expect(clean("it's")).toBe("its");
   });
 
   it("returns empty string for punctuation-only input", () => {
