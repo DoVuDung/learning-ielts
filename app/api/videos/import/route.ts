@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { extractYoutubeId } from "@/lib/utils";
+import { parseTranscriptXml, extractCaptionTracksFromHtml, type TranscriptItem, type CaptionTrack } from "@/lib/youtube-transcript";
 
 async function fetchYoutubeMeta(youtubeId: string) {
   try {
@@ -24,91 +25,32 @@ async function fetchYoutubeMeta(youtubeId: string) {
   };
 }
 
-interface TranscriptItem {
-  text: string;
-  offset: number;
-  duration: number;
-}
-
-type CaptionTrack = { languageCode: string; baseUrl: string };
-
-const INNERTUBE_CLIENTS = [
-  {
-    name: "IOS",
-    body: {
-      context: { client: { clientName: "IOS", clientVersion: "19.29.1", deviceModel: "iPhone16,2" } },
-    },
-    userAgent: "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
-  },
-  {
-    name: "ANDROID",
-    body: {
-      context: { client: { clientName: "ANDROID", clientVersion: "20.10.38" } },
-    },
-    userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 14)",
-  },
-  {
-    name: "TVHTML5",
-    body: {
-      context: { client: { clientName: "TVHTML5", clientVersion: "7.20240101" } },
-    },
-    userAgent: "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1",
-  },
-] as const;
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 async function fetchCaptionTracks(youtubeId: string): Promise<CaptionTrack[] | null> {
-  for (const client of INNERTUBE_CLIENTS) {
-    try {
-      const res = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "User-Agent": client.userAgent },
-        body: JSON.stringify({ ...client.body, videoId: youtubeId }),
-      });
+  // Fetch the watch page HTML — YouTube serves this to all IPs including Vercel datacenter.
+  // ytInitialPlayerResponse embedded in the page contains caption track URLs.
+  try {
+    const res = await fetch(`https://www.youtube.com/watch?v=${youtubeId}`, {
+      headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+    });
 
-      if (!res.ok) {
-        console.log(`[import] InnerTube ${client.name} HTTP ${res.status}`);
-        continue;
-      }
-
-      const data = (await res.json()) as {
-        captions?: {
-          playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] };
-        };
-        playabilityStatus?: { status?: string };
-      };
-
-      const status = data?.playabilityStatus?.status;
-      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      console.log(`[import] InnerTube ${client.name}: playability=${status} tracks=${tracks?.length ?? 0}`);
-
-      if (tracks && tracks.length > 0) return tracks;
-    } catch (err) {
-      console.log(`[import] InnerTube ${client.name} error:`, err);
+    if (!res.ok) {
+      console.log(`[import] watch page HTTP ${res.status}`);
+      return null;
     }
+
+    const html = await res.text();
+    const tracks = extractCaptionTracksFromHtml(html);
+    console.log(`[import] watch page tracks=${tracks?.length ?? 0}`);
+    if (tracks) return tracks;
+  } catch (err) {
+    console.log("[import] watch page error:", err);
   }
   return null;
 }
 
-function parseTranscriptXml(xml: string): TranscriptItem[] {
-  const items: TranscriptItem[] = [];
-  const re = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(xml)) !== null) {
-    const text = m[3]
-      .replace(/<[^>]+>/g, "")
-      .replace(/&#39;/g, "'")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&quot;/g, '"')
-      .replace(/\n/g, " ")
-      .trim();
-    if (text) {
-      items.push({ text, offset: Number(m[1]), duration: Number(m[2]) });
-    }
-  }
-  return items;
-}
 
 async function fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
   const tracks = await fetchCaptionTracks(youtubeId);
@@ -125,10 +67,7 @@ async function fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | nu
   console.log(`[import] fetching captions lang=${track.languageCode}`);
 
   const captionRes = await fetch(track.baseUrl, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    },
+    headers: { "User-Agent": BROWSER_UA },
   });
 
   console.log(`[import] caption fetch status=${captionRes.status}`);
