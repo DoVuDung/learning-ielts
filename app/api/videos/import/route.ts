@@ -30,55 +30,66 @@ interface TranscriptItem {
   duration: number;
 }
 
-// Use YouTube's InnerTube API (Android client) which works from server environments
-async function fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
-  const innerTubeRes = await fetch(
-    "https://www.youtube.com/youtubei/v1/player?prettyPrint=false",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "com.google.android.youtube/20.10.38 (Linux; U; Android 14)",
-      },
-      body: JSON.stringify({
-        context: { client: { clientName: "ANDROID", clientVersion: "20.10.38" } },
-        videoId: youtubeId,
-      }),
-    }
-  );
+type CaptionTrack = { languageCode: string; baseUrl: string };
 
-  if (!innerTubeRes.ok) return null;
-
-  const data = (await innerTubeRes.json()) as {
-    captions?: {
-      playerCaptionsTracklistRenderer?: {
-        captionTracks?: Array<{ languageCode: string; baseUrl: string }>;
-      };
-    };
-  };
-
-  const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-  if (!tracks || tracks.length === 0) return null;
-
-  const track =
-    tracks.find((t) => t.languageCode === "en") ??
-    tracks.find((t) => t.languageCode.startsWith("en")) ??
-    tracks[0];
-
-  if (!track?.baseUrl) return null;
-
-  const captionRes = await fetch(track.baseUrl, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+const INNERTUBE_CLIENTS = [
+  {
+    name: "IOS",
+    body: {
+      context: { client: { clientName: "IOS", clientVersion: "19.29.1", deviceModel: "iPhone16,2" } },
     },
-  });
+    userAgent: "com.google.ios.youtube/19.29.1 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
+  },
+  {
+    name: "ANDROID",
+    body: {
+      context: { client: { clientName: "ANDROID", clientVersion: "20.10.38" } },
+    },
+    userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 14)",
+  },
+  {
+    name: "TVHTML5",
+    body: {
+      context: { client: { clientName: "TVHTML5", clientVersion: "7.20240101" } },
+    },
+    userAgent: "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1",
+  },
+] as const;
 
-  if (!captionRes.ok) return null;
+async function fetchCaptionTracks(youtubeId: string): Promise<CaptionTrack[] | null> {
+  for (const client of INNERTUBE_CLIENTS) {
+    try {
+      const res = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "User-Agent": client.userAgent },
+        body: JSON.stringify({ ...client.body, videoId: youtubeId }),
+      });
 
-  const xml = await captionRes.text();
+      if (!res.ok) {
+        console.log(`[import] InnerTube ${client.name} HTTP ${res.status}`);
+        continue;
+      }
 
-  // Parse XML: <p t="startMs" d="durationMs">text</p>
+      const data = (await res.json()) as {
+        captions?: {
+          playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] };
+        };
+        playabilityStatus?: { status?: string };
+      };
+
+      const status = data?.playabilityStatus?.status;
+      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      console.log(`[import] InnerTube ${client.name}: playability=${status} tracks=${tracks?.length ?? 0}`);
+
+      if (tracks && tracks.length > 0) return tracks;
+    } catch (err) {
+      console.log(`[import] InnerTube ${client.name} error:`, err);
+    }
+  }
+  return null;
+}
+
+function parseTranscriptXml(xml: string): TranscriptItem[] {
   const items: TranscriptItem[] = [];
   const re = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
   let m: RegExpExecArray | null;
@@ -93,10 +104,41 @@ async function fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | nu
       .replace(/\n/g, " ")
       .trim();
     if (text) {
-      items.push({ text, offset: parseInt(m[1], 10), duration: parseInt(m[2], 10) });
+      items.push({ text, offset: Number(m[1]), duration: Number(m[2]) });
     }
   }
+  return items;
+}
 
+async function fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
+  const tracks = await fetchCaptionTracks(youtubeId);
+  if (!tracks) {
+    console.log(`[import] no caption tracks found for ${youtubeId}`);
+    return null;
+  }
+
+  const track =
+    tracks.find((t) => t.languageCode === "en") ??
+    tracks.find((t) => t.languageCode.startsWith("en")) ??
+    tracks[0];
+
+  console.log(`[import] fetching captions lang=${track.languageCode}`);
+
+  const captionRes = await fetch(track.baseUrl, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    },
+  });
+
+  console.log(`[import] caption fetch status=${captionRes.status}`);
+  if (!captionRes.ok) return null;
+
+  const xml = await captionRes.text();
+  console.log(`[import] caption XML length=${xml.length}`);
+
+  const items = parseTranscriptXml(xml);
+  console.log(`[import] parsed ${items.length} items`);
   return items.length > 0 ? items : null;
 }
 
