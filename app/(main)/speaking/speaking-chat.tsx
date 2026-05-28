@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Loader2, RotateCcw } from "lucide-react";
+import { Send, Loader2, RotateCcw, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/locale-context";
+
+const STORAGE_KEY = "anthropic_api_key";
 
 const TOPICS = [
   { id: "daily", label: "Daily Life", prompt: "Talk about your daily routine, hobbies, and lifestyle" },
@@ -28,8 +30,21 @@ export function SpeakingChat() {
   const [streaming, setStreaming] = useState(false);
   const [started, setStarted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setApiKey(saved);
+  }, []);
+
+  function saveApiKey(key: string) {
+    setApiKey(key);
+    if (key.trim()) localStorage.setItem(STORAGE_KEY, key.trim());
+    else localStorage.removeItem(STORAGE_KEY);
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -39,7 +54,7 @@ export function SpeakingChat() {
     const res = await fetch("/api/speaking", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: msgs, topic: topic.label }),
+      body: JSON.stringify({ messages: msgs, topic: topic.label, apiKey: apiKey.trim() || undefined }),
     });
 
     if (!res.ok) {
@@ -130,6 +145,37 @@ export function SpeakingChat() {
               <p>• {t.speakingTip2}</p>
               <p>• {t.speakingTip3}</p>
             </div>
+
+            {/* API key input */}
+            <div className="w-full max-w-sm flex flex-col gap-2">
+              <button
+                onClick={() => setShowKeyInput((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start"
+              >
+                <Key className="size-3" />
+                {apiKey ? "API key saved ✓" : "Set Anthropic API key"}
+              </button>
+              {showKeyInput && (
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-ant-..."
+                    className="flex-1 text-xs h-8"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs"
+                    onClick={() => { saveApiKey(apiKey); setShowKeyInput(false); }}
+                  >
+                    Save
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <Button onClick={startConversation} className="gap-2 px-8">
               {t.startConversation}
             </Button>

@@ -15,18 +15,20 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return new Response("Unauthorized", { status: 401 });
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === "your-key-here") {
-    return new Response("ANTHROPIC_API_KEY is not configured", { status: 503 });
-  }
-
   let messages: { role: "user" | "assistant"; content: string }[];
   let topic: string;
+  let userApiKey: string | undefined;
   try {
-    const body = await (req.json() as Promise<{ messages: { role: "user" | "assistant"; content: string }[]; topic: string }>);
-    ({ messages, topic } = body);
+    const body = await (req.json() as Promise<{ messages: { role: "user" | "assistant"; content: string }[]; topic: string; apiKey?: string }>);
+    ({ messages, topic, apiKey: userApiKey } = body);
   } catch {
     return new Response("Invalid JSON body", { status: 400 });
+  }
+
+  const serverKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = (serverKey && serverKey !== "your-key-here") ? serverKey : userApiKey;
+  if (!apiKey) {
+    return new Response("Anthropic API key not configured. Please set your API key in the speaking settings.", { status: 503 });
   }
 
   if (!Array.isArray(messages) || messages.length === 0) {
