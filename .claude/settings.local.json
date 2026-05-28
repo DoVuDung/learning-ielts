@@ -7,7 +7,15 @@
       "Bash(npm test *)",
       "Bash(npx playwright *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(node *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl *)",
+      "Bash(pkill -f \"next dev\")",
+      "Read(//tmp/**)"
     ]
   }
 }
