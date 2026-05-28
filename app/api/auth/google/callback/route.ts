@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signToken, setTokenCookie } from "@/lib/auth";
 
-const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:3000";
+const FRONTEND_URL = process.env.NODE_ENV === "production"
+  ? (process.env.FRONTEND_URL_PROD ?? "http://localhost:3000")
+  : (process.env.FRONTEND_URL_LOCAL ?? "http://localhost:3000");
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -16,7 +18,9 @@ export async function GET(req: NextRequest) {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_CALLBACK_URL!,
+      redirect_uri: process.env.NODE_ENV === "production"
+        ? process.env.GOOGLE_CALLBACK_URL_PROD!
+        : process.env.GOOGLE_CALLBACK_URL_LOCAL!,
       grant_type: "authorization_code",
     }),
   });
