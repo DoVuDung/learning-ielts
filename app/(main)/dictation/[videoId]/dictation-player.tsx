@@ -284,6 +284,8 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const playerRef = useRef<HTMLIFrameElement>(null);
+  const sentencesRef = useRef(sentences);
+  sentencesRef.current = sentences;
   const dragging = useRef(false);
   const startY = useRef(0);
   const startH = useRef(DEFAULT_H);
@@ -440,6 +442,38 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
       globalThis.removeEventListener("touchmove", onMove);
       globalThis.removeEventListener("touchend", onUp);
     };
+  }, []);
+
+  // ── Subscribe to YouTube time updates to sync transcript sidebar ──────
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      if (!playerRef.current || e.source !== playerRef.current.contentWindow) return;
+      let data: Record<string, unknown>;
+      try { data = JSON.parse(e.data as string); } catch { return; }
+
+      if (data.event === "onReady") {
+        playerRef.current.contentWindow?.postMessage(
+          JSON.stringify({ event: "listening" }),
+          "https://www.youtube.com",
+        );
+      }
+
+      if (data.event === "infoDelivery") {
+        const info = data.info as Record<string, unknown> | undefined;
+        const sec = info?.currentTime as number | undefined;
+        if (sec == null) return;
+        const ms = sec * 1000;
+        const list = sentencesRef.current;
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (ms >= list[i].startMs) {
+            setCurrent((prev) => (prev === i ? prev : i));
+            break;
+          }
+        }
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
   }, []);
 
   // ── Keyboard ───────────────────────────────────────────────────────────
