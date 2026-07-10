@@ -20,8 +20,25 @@ async function request<T>(
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(body || `HTTP ${res.status}`);
+    const raw = await res.text();
+    let errorMessage = `HTTP ${res.status}`;
+    try {
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.message) {
+          errorMessage = Array.isArray(parsed.message)
+            ? parsed.message.join(', ')
+            : String(parsed.message);
+        } else if (parsed?.error) {
+          errorMessage = String(parsed.error);
+        } else {
+          errorMessage = raw;
+        }
+      }
+    } catch {
+      errorMessage = raw || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   // Some endpoints return empty body (204)
@@ -183,8 +200,19 @@ export async function streamSpeakingReply(
   });
 
   if (!res.ok) {
-    const msg = await res.text();
-    throw new Error(msg || `HTTP ${res.status}`);
+    const raw = await res.text();
+    let errorMessage = `HTTP ${res.status}`;
+    try {
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        errorMessage = Array.isArray(parsed?.message)
+          ? parsed.message.join(', ')
+          : (parsed?.message || parsed?.error || raw);
+      }
+    } catch {
+      errorMessage = raw || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
 
   return res.body!;

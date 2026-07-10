@@ -1,17 +1,39 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Lớp 1: HTTP Security Headers (Helmet)
+  app.use(helmet());
+
+  // Lớp 2: Cookie Parser (để đọc JWT HttpOnly cookie)
   app.use(cookieParser());
 
+  // Lớp 3: Strict CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  // Lớp 4: Global Input Validation & Whitelisting (chống Mass Assignment injection)
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Lớp 5: Chuẩn hóa format lỗi RESTful & ẩn internal details
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // ─── Swagger / OpenAPI ───────────────────────────────────────────────────
   const config = new DocumentBuilder()
