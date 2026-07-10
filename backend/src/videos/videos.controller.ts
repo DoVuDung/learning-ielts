@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { VideosService } from './videos.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -52,9 +53,12 @@ export class VideosController {
 
   @Post('import')
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Import a YouTube video (fetches transcript & metadata)' })
   @ApiResponse({ status: 201, description: 'Video created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid URL or unsupported video' })
   @ApiResponse({ status: 409, description: 'Video already imported' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   importVideo(@Body() dto: CreateVideoDto, @Req() req: AuthRequest) {
     return this.videosService.importVideo(dto, req.user.sub);
   }
