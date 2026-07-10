@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { transcriptApi } from "@/lib/api-client";
 import type { Sentence } from "@prisma/client";
 
 // ─── Language catalogue ────────────────────────────────────────────────────
@@ -92,14 +93,7 @@ export function TranscriptSidebar({
     if (lang === "en") { setAltLines(null); setError(null); return; }
     setLoading(true);
     setError(null);
-    fetch(`/api/transcript?videoId=${youtubeId}&lang=${lang}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error ?? `HTTP ${res.status}`);
-        }
-        return res.json() as Promise<TranscriptLine[]>;
-      })
+    transcriptApi.fetch(youtubeId, lang)
       .then((lines) => {
         setAltLines(alignToSentences(lines, sentences));
         setError(null);

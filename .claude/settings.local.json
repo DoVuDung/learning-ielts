@@ -15,7 +15,8 @@
       "Bash(curl -s http://localhost:3000/)",
       "Bash(curl *)",
       "Bash(pkill -f \"next dev\")",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k: d[k] for k in ['scripts','devDependencies'] if k in d}, indent=2\\)\\)\")"
     ]
   }
 }

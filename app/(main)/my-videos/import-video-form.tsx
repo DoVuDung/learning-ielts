@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Link2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { videosApi } from "@/lib/api-client";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const CATEGORIES = ["general", "TED", "BBC", "IELTS", "News", "Science", "Business"];
@@ -23,27 +24,18 @@ export function ImportVideoForm() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/videos/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, level, category }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setStatus("error");
-        setMessage(data.error ?? "Import thất bại");
-        return;
-      }
-
+      const data = await videosApi.import({ url, level, category });
       setStatus("success");
       setMessage(`Đã import: "${data.title}"`);
       setUrl("");
       router.refresh();
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Import thất bại";
+      // Try to parse JSON error from BE
+      let displayMsg = msg;
+      try { displayMsg = JSON.parse(msg).message ?? msg; } catch { /* raw string */ }
       setStatus("error");
-      setMessage("Lỗi kết nối. Thử lại sau.");
+      setMessage(displayMsg ?? "Import thất bại");
     }
   }
 

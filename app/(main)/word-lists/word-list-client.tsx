@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trash2, BookOpen, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { wordsApi } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import type { Card, Note } from "@prisma/client";
 
@@ -31,11 +32,7 @@ export function WordListClient({ initialNotes }: Props) {
   );
 
   async function remove(word: string) {
-    await fetch("/api/words", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ word }),
-    });
+    await wordsApi.remove(word);
     setNotes((prev) => prev.filter((n) => n.word !== word));
     router.refresh();
   }

@@ -6,6 +6,7 @@ import { Eye, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { wordsApi } from "@/lib/api-client";
 import {
   previewIntervals,
   type Rating,
@@ -102,11 +103,7 @@ export function FlashcardReview({ cards }: Props) {
     if (!card || busy) return;
     setBusy(true);
     try {
-      await fetch("/api/words/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: card.id, rating }),
-      });
+      await wordsApi.review(card.id, rating);
 
       setQueue((prev) => {
         const [head, ...rest] = prev;

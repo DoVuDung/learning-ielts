@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+import { authApi } from "@/lib/api-client";
+
 export function GoogleSignInButton() {
   const [loading, setLoading] = useState(false);
 
   function handleClick() {
     setLoading(true);
-    window.location.href = "/api/auth/google";
+    window.location.href = authApi.googleLoginUrl();
   }
+
 
   return (
     <Button

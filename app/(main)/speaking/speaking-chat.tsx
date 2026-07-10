@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { streamSpeakingReply } from "@/lib/api-client";
 import { Send, Loader2, RotateCcw, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,25 +52,20 @@ export function SpeakingChat() {
   }, [messages]);
 
   async function streamResponse(msgs: Message[]) {
-    const res = await fetch("/api/speaking", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: msgs, topic: topic.label, apiKey: apiKey.trim() || undefined }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      setError(errText || `Error ${res.status}`);
+    let body: ReadableStream<Uint8Array>;
+    try {
+      body = await streamSpeakingReply(msgs, topic.label, apiKey.trim() || undefined);
+    } catch (err) {
+      const errText = err instanceof Error ? err.message : `Error`;
+      setError(errText);
       setStreaming(false);
       return;
     }
 
-    if (!res.body) { setStreaming(false); return; }
-
     setError(null);
     let text = "";
     setMessages([...msgs, { role: "assistant", content: "" }]);
-    const reader = res.body.getReader();
+    const reader = body.getReader();
     const decoder = new TextDecoder();
 
     while (true) {

@@ -20,6 +20,7 @@ import {
   Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { authApi } from "@/lib/api-client";
 import { ThemePickerDropdown, useTheme } from "@/components/theme-picker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -81,7 +82,7 @@ export function SideNav({ onNavigate }: Readonly<{ onNavigate?: () => void }>) {
   async function handleLogout() {
     setLoggingOut(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await authApi.logout();
     } finally {
       router.push("/login");
     }

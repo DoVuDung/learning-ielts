@@ -1,5 +1,7 @@
 "use client";
 
+import { wordsApi, progressApi } from "@/lib/api-client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -96,11 +98,7 @@ function VocabPopover({
 
   async function save() {
     setSaving(true);
-    await fetch("/api/words", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ word: word.toLowerCase(), context, videoId }),
-    });
+    await wordsApi.save({ word: word.toLowerCase(), context, videoId });
     setSaved(true);
     setSaving(false);
     onSaved(word);
@@ -387,14 +385,10 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
   }
 
   function saveProgress(sentencesDone: number) {
-    fetch("/api/progress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        videoId: video.id,
-        sentencesDone,
-        totalSentences: sentences.length,
-      }),
+    progressApi.upsert({
+      videoId: video.id,
+      sentencesDone,
+      totalSentences: sentences.length,
     });
   }
 
