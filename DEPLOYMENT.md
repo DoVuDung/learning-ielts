@@ -124,6 +124,37 @@ If you prefer automated deployments through GitHub Actions:
 
 ---
 
+## Monorepo Build Separation (FE vs BE)
+
+To prevent Vercel from wasting build minutes when you only update the NestJS backend, and to ensure each service deploys independently:
+
+### 1. Frontend (Vercel Ignore Command)
+We have configured [`vercel.json`](file:///Users/andydo/Desktop/learning-english-ielts/vercel.json) in the project root with an automatic ignore script:
+```json
+{
+  "ignoreCommand": "bash scripts/vercel-ignore-step.sh"
+}
+```
+- **How it works**: Before Vercel builds, it executes [`scripts/vercel-ignore-step.sh`](file:///Users/andydo/Desktop/learning-english-ielts/scripts/vercel-ignore-step.sh).
+- If only files inside `backend/` or `.github/workflows/docker-backend.yml` were changed, the script exits with `code 0` ➔ **Vercel skips the build automatically**.
+- If any frontend file (`app/`, `components/`, `lib/`, `package.json`, etc.) changed, the script exits with `code 1` ➔ **Vercel proceeds to build Next.js**.
+
+### 2. Backend (GitHub Actions Path Trigger)
+The backend CI pipeline ([`.github/workflows/docker-backend.yml`](file:///Users/andydo/Desktop/learning-english-ielts/.github/workflows/docker-backend.yml)) only triggers when files inside `backend/**` change:
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/docker-backend.yml"
+```
+This guarantees complete separation:
+- Push changing only `backend/` ➔ **Only GHCR Docker builds** (Vercel skips).
+- Push changing only `app/` ➔ **Only Vercel builds** (GHCR Docker skips).
+
+---
+
 ## Verification Checklist
 
 After deployment, test the following end-to-end flows:
