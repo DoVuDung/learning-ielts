@@ -48,3 +48,8 @@ next-env.d.ts
 
 /backend/node_modules
 /backend/dist
+
+# admin-portal
+/admin-portal/node_modules
+/admin-portal/.svelte-kit
+/admin-portal/build
