@@ -14,6 +14,12 @@ function CallbackHandler() {
       router.replace("/login?error=auth_failed");
       return;
     }
+
+    const token = searchParams.get("token");
+    if (token) {
+      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+    }
+
     router.replace("/dictation");
   }, [router, searchParams]);
 

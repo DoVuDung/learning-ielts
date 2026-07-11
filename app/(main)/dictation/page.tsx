@@ -84,7 +84,7 @@ export default async function DictationPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <TopNav title="Luyện Dictation" subtitle="Chọn video để luyện kỹ năng nghe" showStats />
+      <TopNav title="Luyện Dictation" subtitle="Chọn bài học từ thư viện IELTS V3" showSearch showStats />
       <main className="flex-1 overflow-y-auto px-6 py-6">
         <Suspense>
           <FilterBar categories={categories} levels={levels} />
