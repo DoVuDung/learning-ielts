@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchAdminUsers, updateUserPremium } from '$lib/api';
+  import { fetchAdminUsers, updateUserPremium, updateUserRole } from '$lib/api';
   import { Search, Crown, Shield, UserCheck, AlertCircle, X, Check } from 'lucide-svelte';
 
   let users: any[] = [];
@@ -59,6 +59,17 @@
       alert(err.message);
     }
   }
+
+  async function handleToggleRole(user: any) {
+    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    if (!confirm(`Bạn có chắc chắn muốn chuyển vai trò của ${user.name} sang ${newRole}?`)) return;
+    try {
+      await updateUserRole(user.id, newRole);
+      await loadUsers();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
 </script>
 
 <div class="space-y-6">
@@ -104,6 +115,7 @@
         <thead>
           <tr class="border-b border-white/10 text-xs text-gray-400 uppercase">
             <th class="p-4 font-semibold">Học Viên</th>
+            <th class="p-4 font-semibold">Vai Trò</th>
             <th class="p-4 font-semibold">Ngày Đăng Ký</th>
             <th class="p-4 font-semibold">Trạng Thái PRO</th>
             <th class="p-4 font-semibold">Hết Hạn</th>
@@ -113,7 +125,7 @@
         <tbody class="divide-y divide-white/5 text-sm">
           {#if users.length === 0}
             <tr>
-              <td colspan="5" class="p-8 text-center text-gray-400">
+              <td colspan="6" class="p-8 text-center text-gray-400">
                 Không tìm thấy học viên nào phù hợp.
               </td>
             </tr>
@@ -123,6 +135,22 @@
                 <td class="p-4">
                   <div class="font-bold text-white">{user.name}</div>
                   <div class="text-xs text-gray-400">{user.email}</div>
+                </td>
+                <td class="p-4">
+                  {#if user.role === 'ADMIN'}
+                    <span
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                    >
+                      <Shield class="size-3.5 text-purple-400" />
+                      <span>ADMIN</span>
+                    </span>
+                  {:else}
+                    <span
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/5 text-gray-400 border border-white/10"
+                    >
+                      <span>USER</span>
+                    </span>
+                  {/if}
                 </td>
                 <td class="p-4 text-gray-400 text-xs">
                   {new Date(user.createdAt).toLocaleDateString('vi-VN')}
@@ -149,6 +177,12 @@
                     : '—'}
                 </td>
                 <td class="p-4 text-right space-x-2">
+                  <button
+                    on:click={() => handleToggleRole(user)}
+                    class="px-2.5 py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-semibold transition-colors"
+                  >
+                    {user.role === 'ADMIN' ? 'Hủy Admin' : 'Cấp Admin'}
+                  </button>
                   <button
                     on:click={() => (selectedUser = user)}
                     class="px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold transition-colors"

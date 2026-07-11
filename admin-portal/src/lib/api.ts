@@ -23,6 +23,16 @@ export async function updateUserPremium(userId: string, isPremium: boolean, exte
   return res.json();
 }
 
+export async function updateUserRole(userId: string, role: 'USER' | 'ADMIN') {
+  const res = await fetch(`${API_BASE}/users/${userId}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error('Failed to update user role');
+  return res.json();
+}
+
 export async function fetchAdminTransactions() {
   const res = await fetch(`${API_BASE}/transactions`);
   if (!res.ok) throw new Error('Failed to fetch transactions');

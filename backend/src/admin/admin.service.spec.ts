@@ -135,6 +135,29 @@ describe('AdminService', () => {
     });
   });
 
+  describe('updateUserRole', () => {
+    it('throws NotFoundException if user not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateUserRole('u-404', 'ADMIN' as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('updates user role successfully', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: 'u-1', role: 'USER' });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u-1', role: 'ADMIN' });
+
+      const result = await service.updateUserRole('u-1', 'ADMIN' as any);
+
+      expect(result).toEqual({ id: 'u-1', role: 'ADMIN' });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u-1' },
+        data: { role: 'ADMIN' },
+      });
+    });
+  });
+
   describe('getTransactions', () => {
     it('returns list of transactions', async () => {
       mockPrisma.upgradeTransaction.findMany.mockResolvedValue([]);

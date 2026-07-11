@@ -9,6 +9,7 @@ describe('AdminController', () => {
     getDashboardStats: jest.fn(),
     getUsers: jest.fn(),
     updateUserPremium: jest.fn(),
+    updateUserRole: jest.fn(),
     getTransactions: jest.fn(),
     approveTransaction: jest.fn(),
     getVideos: jest.fn(),
@@ -34,6 +35,7 @@ describe('AdminController', () => {
     mockAdminService.getDashboardStats.mockResolvedValue({ totalUsers: 10 });
     mockAdminService.getUsers.mockResolvedValue([]);
     mockAdminService.updateUserPremium.mockResolvedValue({ id: 'u-1' });
+    mockAdminService.updateUserRole.mockResolvedValue({ id: 'u-1', role: 'ADMIN' });
     mockAdminService.getTransactions.mockResolvedValue([]);
     mockAdminService.approveTransaction.mockResolvedValue({ idempotent: true });
     mockAdminService.getVideos.mockResolvedValue([]);
@@ -44,6 +46,9 @@ describe('AdminController', () => {
     expect(
       await controller.updateUserPremium('u-1', { isPremium: true }),
     ).toEqual({ id: 'u-1' });
+    expect(
+      await controller.updateUserRole('u-1', { role: 'ADMIN' as any }),
+    ).toEqual({ id: 'u-1', role: 'ADMIN' });
     expect(await controller.getTransactions()).toEqual([]);
     expect(
       await controller.approveTransaction({ orderId: 'ORD-1' }),

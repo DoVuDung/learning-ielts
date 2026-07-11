@@ -12,6 +12,7 @@ const mockUser = {
   email: 'test@example.com',
   name: 'Test User',
   avatarUrl: null,
+  role: 'USER',
   isPremium: false,
   googleId: 'google-123',
   createdAt: new Date(),
@@ -24,6 +25,7 @@ const authUserPayload = {
   name: 'Test User',
   avatarUrl: null,
   isPremium: false,
+  role: 'USER',
 };
 
 describe('Auth (e2e)', () => {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Role } from '../auth/roles.enum';
 import {
   UpdateUserPremiumDto,
   ManualApproveTransactionDto,
@@ -58,10 +59,23 @@ export class AdminService {
         email: true,
         name: true,
         avatarUrl: true,
+        role: true,
         isPremium: true,
         premiumExpiresAt: true,
         createdAt: true,
       },
+    });
+  }
+
+  async updateUserRole(userId: string, role: Role) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
     });
   }
 

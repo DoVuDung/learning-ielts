@@ -8,15 +8,23 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import {
   UpdateUserPremiumDto,
+  UpdateUserRoleDto,
   ManualApproveTransactionDto,
   AdminCreateVideoDto,
 } from './dto/admin.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/roles.enum';
 
 @Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -36,6 +44,14 @@ export class AdminController {
     @Body() dto: UpdateUserPremiumDto,
   ) {
     return this.adminService.updateUserPremium(userId, dto);
+  }
+
+  @Patch('users/:id/role')
+  async updateUserRole(
+    @Param('id') userId: string,
+    @Body() dto: UpdateUserRoleDto,
+  ) {
+    return this.adminService.updateUserRole(userId, dto.role);
   }
 
   @Get('transactions')

@@ -16,4 +16,5 @@ export interface AuthUser {
   name: string;
   avatarUrl: string | null;
   isPremium: boolean;
+  role?: string;
 }

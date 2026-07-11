@@ -30,6 +30,7 @@ export class AuthService {
       name: user.name,
       avatarUrl: user.avatarUrl,
       isPremium: user.isPremium,
+      role: (user as any).role ?? 'USER',
     };
   }
 
@@ -47,6 +48,7 @@ export class AuthService {
       name: user.name,
       avatarUrl: user.avatarUrl,
       isPremium: user.isPremium,
+      role: (user as any).role ?? 'USER',
     };
   }
 }

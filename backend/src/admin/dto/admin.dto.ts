@@ -1,11 +1,13 @@
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   Min,
 } from 'class-validator';
+import { Role } from '../../auth/roles.enum';
 
 export class UpdateUserPremiumDto {
   @IsBoolean()
@@ -15,6 +17,11 @@ export class UpdateUserPremiumDto {
   @Min(1)
   @IsOptional()
   extendDays?: number;
+}
+
+export class UpdateUserRoleDto {
+  @IsEnum(Role)
+  role!: Role;
 }
 
 export class ManualApproveTransactionDto {

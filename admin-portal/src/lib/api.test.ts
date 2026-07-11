@@ -3,6 +3,7 @@ import {
   fetchAdminStats,
   fetchAdminUsers,
   updateUserPremium,
+  updateUserRole,
   fetchAdminTransactions,
   approveTransaction,
   fetchAdminVideos,
@@ -84,6 +85,34 @@ describe('Admin API Client', () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
       await expect(updateUserPremium('u-1', true)).rejects.toThrow(
         'Failed to update premium status',
+      );
+    });
+  });
+
+  describe('updateUserRole', () => {
+    it('sends PATCH request to update user role', async () => {
+      const mockUser = { id: 'u-1', role: 'ADMIN' };
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockUser,
+      } as any);
+
+      const res = await updateUserRole('u-1', 'ADMIN');
+      expect(res).toEqual(mockUser);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/admin/users/u-1/role',
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'ADMIN' }),
+        }),
+      );
+    });
+
+    it('throws error if updateUserRole fails', async () => {
+      global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
+      await expect(updateUserRole('u-1', 'ADMIN')).rejects.toThrow(
+        'Failed to update user role',
       );
     });
   });

@@ -21,6 +21,7 @@ const mockAuthUser: AuthUser = {
   name: 'Test User',
   avatarUrl: 'https://example.com/avatar.jpg',
   isPremium: false,
+  role: 'USER',
 };
 
 const usersServiceMock = {
