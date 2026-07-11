@@ -217,3 +217,51 @@ export async function streamSpeakingReply(
 
   return res.body!;
 }
+
+// ─── Users & Target / Assessment ──────────────────────────────────────────────
+
+export interface UserTarget {
+  id: string;
+  targetIeltsBand: number | null;
+  targetCefrLevel: string | null;
+  dailyMinutesTarget: number | null;
+  currentLevel: string | null;
+  assessedAt: string | null;
+  latestAssessment?: AssessmentResult | null;
+}
+
+export interface AssessmentResult {
+  id: string;
+  userId: string;
+  score: number;
+  cefrLevel: string;
+  ieltsBand: number;
+  listeningScore: number;
+  vocabularyScore: number;
+  grammarScore: number;
+  answersJson: string;
+  createdAt: string;
+}
+
+export const usersApi = {
+  getTarget: () => request<UserTarget>('/users/me/target'),
+
+  updateTarget: (data: {
+    targetIeltsBand?: number;
+    targetCefrLevel?: string;
+    dailyMinutesTarget?: number;
+  }) =>
+    request<UserTarget>('/users/me/target', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  submitAssessment: (answers: { questionId: string; selectedAnswer: string }[]) =>
+    request<AssessmentResult>('/users/me/assessment', {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    }),
+
+  getAssessments: () => request<AssessmentResult[]>('/users/me/assessments'),
+};
+

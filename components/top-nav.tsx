@@ -1,6 +1,8 @@
 "use client";
 
+import React, { useState } from "react";
 import Link from "next/link";
+import { NotificationsPopover } from "@/components/notifications-popover";
 import {
   BookOpen,
   CheckCircle2,
@@ -51,6 +53,8 @@ export function TopNav({
   showStats = false,
   showSearch = false,
 }: Readonly<TopNavProps>) {
+  const [notifOpen, setNotifOpen] = useState(false);
+
   return (
     <header className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-30 transition-all">
       <div className="flex flex-col gap-0.5">
@@ -125,20 +129,35 @@ export function TopNav({
               <span className="text-xs font-bold">12 Ngày</span>
             </div>
 
-            <div className="flex items-center gap-1 border-l border-border pl-3">
+            <div className="flex items-center gap-1 border-l border-border pl-3 relative">
               <button
+                onClick={() => setNotifOpen((prev) => !prev)}
                 title="Thông báo"
                 className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors relative"
               >
                 <Bell className="size-4" />
-                <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
+                <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary animate-pulse" />
               </button>
-              <button
-                title="Cài đặt"
+
+              {notifOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNotifOpen(false)}
+                  />
+                  <div className="absolute top-full right-0 mt-2 z-50">
+                    <NotificationsPopover onClose={() => setNotifOpen(false)} />
+                  </div>
+                </>
+              )}
+
+              <Link
+                href="/settings"
+                title="Cài đặt hệ thống"
                 className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
               >
                 <Settings className="size-4" />
-              </button>
+              </Link>
             </div>
           </div>
         )}

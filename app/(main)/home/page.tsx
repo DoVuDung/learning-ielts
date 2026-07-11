@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Headphones,
@@ -13,9 +14,11 @@ import {
   ArrowUpRight,
   Play,
   Sparkles,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/user-context";
+import { usersApi, type UserTarget } from "@/lib/api-client";
 import { TopNav } from "@/components/top-nav";
 
 interface Feature {
@@ -109,6 +112,11 @@ const features: Feature[] = [
 
 export default function HomePage() {
   const { user, loading } = useUser();
+  const [target, setTarget] = useState<UserTarget | null>(null);
+
+  useEffect(() => {
+    usersApi.getTarget().then(setTarget).catch(() => {});
+  }, []);
 
   return (
     <>
@@ -143,22 +151,28 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="flex-1 md:flex-none rounded-xl border border-border bg-background/60 backdrop-blur-md px-4 py-3 flex flex-col items-center min-w-[130px]">
+              <Link
+                href="/assessment"
+                className="flex-1 md:flex-none rounded-xl border border-border bg-background/60 hover:bg-background/90 backdrop-blur-md px-4 py-3 flex flex-col items-center min-w-[130px] transition-colors"
+              >
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                   Trình độ hiện tại
                 </span>
                 <span className="text-xl font-black text-primary mt-0.5">
-                  B2 Upper
+                  {target?.latestAssessment ? `IELTS ${target.latestAssessment.ieltsBand.toFixed(1)}` : target?.currentLevel || "Kiểm tra →"}
                 </span>
-              </div>
-              <div className="flex-1 md:flex-none rounded-xl border border-border bg-background/60 backdrop-blur-md px-4 py-3 flex flex-col items-center min-w-[130px]">
+              </Link>
+              <Link
+                href="/target"
+                className="flex-1 md:flex-none rounded-xl border border-border bg-background/60 hover:bg-background/90 backdrop-blur-md px-4 py-3 flex flex-col items-center min-w-[130px] transition-colors"
+              >
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Tiến độ tuần
+                  Mục tiêu IELTS
                 </span>
                 <span className="text-xl font-black text-emerald-400 mt-0.5">
-                  78%
+                  {target?.targetIeltsBand ? `${target.targetIeltsBand.toFixed(1)}+` : "Cài đặt →"}
                 </span>
-              </div>
+              </Link>
             </div>
           </div>
 

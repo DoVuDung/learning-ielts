@@ -19,16 +19,22 @@ model User {
   name      String
   avatarUrl String?
   role      Role     @default(USER)
-  isPremium        Boolean              @default(false)
-  premiumExpiresAt DateTime?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  isPremium          Boolean              @default(false)
+  premiumExpiresAt   DateTime?
+  targetIeltsBand    Float?               @default(6.5)
+  targetCefrLevel    String?              @default("B2")
+  dailyMinutesTarget Int?                 @default(30)
+  currentLevel       String?
+  assessedAt         DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
-  videos   Video[]
-  progress DictationProgress[]
-  notes    Note[]
-  cards    Card[]
-  upgrades UpgradeTransaction[]
+  videos      Video[]
+  progress    DictationProgress[]
+  notes       Note[]
+  cards       Card[]
+  upgrades    UpgradeTransaction[]
+  assessments AssessmentResult[]
 }
 
 enum UpgradeStatus {
@@ -168,4 +174,21 @@ model ReviewLog {
   card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@index([cardId, reviewedAt])
+}
+
+model AssessmentResult {
+  id              String   @id @default(cuid())
+  userId          String
+  score           Int      // 0-100
+  cefrLevel       String   // A1 A2 B1 B2 C1 C2
+  ieltsBand       Float    // 4.5 - 8.5
+  listeningScore  Int      // 0-100
+  vocabularyScore Int      // 0-100
+  grammarScore    Int      // 0-100
+  answersJson     String
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

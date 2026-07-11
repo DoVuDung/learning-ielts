@@ -17,6 +17,9 @@ import {
   ChevronUp,
   Sun,
   Sparkles,
+  Target,
+  Award,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authApi } from "@/lib/api-client";
@@ -44,11 +47,15 @@ interface NavSection {
 const navSections: NavSection[] = [
   {
     label: "TỔNG QUAN",
-    items: [{ icon: Home, label: "Trang chủ", href: "/home" }],
+    items: [
+      { icon: Home, label: "Trang chủ", href: "/home" },
+      { icon: Target, label: "Mục tiêu học tập", href: "/target" },
+    ],
   },
   {
     label: "LUYỆN TẬP",
     items: [
+      { icon: Award, label: "Kiểm tra năng lực", href: "/assessment" },
       { icon: Headphones, label: "Dictation", href: "/dictation" },
       { icon: Mic2, label: "Shadowing", href: "/shadowing" },
       { icon: MessageSquare, label: "Luyện nói", href: "/speaking" },
@@ -202,6 +209,14 @@ export function SideNav({
                   {loading ? "" : user?.email || ""}
                 </p>
               </div>
+              <Link
+                href="/settings"
+                onClick={() => setUserMenuOpen(false)}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-xs font-semibold text-foreground hover:bg-muted transition-colors border-b border-border/60"
+              >
+                <Settings className="size-4 shrink-0 text-muted-foreground" />
+                <span>Cài đặt hệ thống</span>
+              </Link>
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}

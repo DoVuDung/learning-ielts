@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Req,
@@ -12,6 +13,7 @@ import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { UpgradeAccountDto } from './dto/upgrade-account.dto';
+import { UpdateTargetDto, SubmitAssessmentDto } from './dto/target.dto';
 import type { AuthUser } from '../auth/dto/auth.dto';
 
 interface RequestWithUser extends Request {
@@ -27,6 +29,37 @@ export class UsersController {
   async getMyProfile(@Req() req: RequestWithUser) {
     const user = await this.usersService.findById(req.user.id);
     return user;
+  }
+
+  @Get('me/target')
+  @UseGuards(JwtAuthGuard)
+  async getMyTarget(@Req() req: RequestWithUser) {
+    return this.usersService.getTarget(req.user.id);
+  }
+
+  @Patch('me/target')
+  @UseGuards(JwtAuthGuard)
+  async updateMyTarget(
+    @Req() req: RequestWithUser,
+    @Body() dto: UpdateTargetDto,
+  ) {
+    return this.usersService.updateTarget(req.user.id, dto);
+  }
+
+  @Post('me/assessment')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async submitMyAssessment(
+    @Req() req: RequestWithUser,
+    @Body() dto: SubmitAssessmentDto,
+  ) {
+    return this.usersService.submitAssessment(req.user.id, dto);
+  }
+
+  @Get('me/assessments')
+  @UseGuards(JwtAuthGuard)
+  async getMyAssessments(@Req() req: RequestWithUser) {
+    return this.usersService.getAssessments(req.user.id);
   }
 
   @Post('me/upgrade')

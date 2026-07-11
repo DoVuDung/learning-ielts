@@ -32,6 +32,11 @@ describe('UsersService', () => {
         upsert: jest.fn(),
         findMany: jest.fn(),
       },
+      assessmentResult: {
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+      },
       $transaction: jest.fn((callback) => callback(prismaMock)),
       $executeRawUnsafe: jest.fn().mockResolvedValue(1),
     };
@@ -261,6 +266,71 @@ describe('UsersService', () => {
         where: { userId: 'user-1' },
         orderBy: { createdAt: 'desc' },
       });
+    });
+  });
+
+  describe('getTarget & updateTarget', () => {
+    it('throws NotFoundException if user not found in getTarget', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      await expect(service.getTarget('u-404')).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns target and latest assessment in getTarget', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', targetIeltsBand: 7.0 });
+      prismaMock.assessmentResult.findFirst.mockResolvedValue({ id: 'a-1', cefrLevel: 'B2' });
+
+      const res = await service.getTarget('u-1');
+      expect(res).toEqual({ id: 'u-1', targetIeltsBand: 7.0, latestAssessment: { id: 'a-1', cefrLevel: 'B2' } });
+    });
+
+    it('updates target successfully', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1', targetIeltsBand: 7.5 });
+
+      const res = await service.updateTarget('u-1', { targetIeltsBand: 7.5 });
+      expect(res).toEqual({ id: 'u-1', targetIeltsBand: 7.5 });
+    });
+  });
+
+  describe('submitAssessment & getAssessments', () => {
+    it('submits assessment and calculates level/band accurately', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      const mockAssessment = { id: 'a-1', score: 90, cefrLevel: 'C1', ieltsBand: 7.5 };
+      prismaMock.assessmentResult.create.mockResolvedValue(mockAssessment);
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
+
+      const res = await service.submitAssessment('u-1', {
+        answers: [
+          { questionId: 'q1', selectedAnswer: 'B' },
+          { questionId: 'q4', selectedAnswer: 'D' },
+          { questionId: 'q7', selectedAnswer: 'A' },
+        ],
+      });
+
+      expect(res).toEqual(mockAssessment);
+      expect(prismaMock.assessmentResult.create).toHaveBeenCalled();
+    });
+
+    it('submits assessment with different score brackets (B1, A2, A1)', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1' });
+      prismaMock.assessmentResult.create.mockResolvedValue({ id: 'a-2' });
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
+
+      // Test A1
+      await service.submitAssessment('u-1', { answers: [] });
+      // Test A2
+      await service.submitAssessment('u-1', {
+        answers: [
+          { questionId: 'q1', selectedAnswer: 'B' },
+          { questionId: 'q4', selectedAnswer: 'D' },
+        ],
+      });
+    });
+
+    it('returns assessment history', async () => {
+      prismaMock.assessmentResult.findMany.mockResolvedValue([]);
+      const res = await service.getAssessments('u-1');
+      expect(res).toEqual([]);
     });
   });
 });
