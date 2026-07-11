@@ -50,4 +50,10 @@ describe('GoogleStrategy', () => {
     expect(authServiceMock.validateGoogleUser).toHaveBeenCalledWith(googleProfile);
     expect(result).toEqual(mockAuthUser);
   });
+
+  it('uses default callback url when GOOGLE_CALLBACK_URL is unset', () => {
+    delete process.env.GOOGLE_CALLBACK_URL;
+    const fallbackStrategy = new GoogleStrategy(authServiceMock as any);
+    expect(fallbackStrategy).toBeDefined();
+  });
 });

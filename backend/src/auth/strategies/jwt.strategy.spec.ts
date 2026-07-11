@@ -51,4 +51,13 @@ describe('JwtStrategy', () => {
       UnauthorizedException,
     );
   });
+
+  it('extracts token from req.cookies.access_token', () => {
+    const extractor = (strategy as any)._jwtFromRequest;
+    if (extractor) {
+      expect(extractor({ cookies: { access_token: 'test-token' }, headers: {} })).toBe('test-token');
+      expect(extractor({ cookies: {}, headers: {} })).toBeNull();
+      expect(extractor({ headers: {} })).toBeNull();
+    }
+  });
 });

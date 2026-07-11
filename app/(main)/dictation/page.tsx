@@ -38,12 +38,35 @@ export default async function DictationPage({ searchParams }: PageProps) {
   const activeCategory = catParam && catParam !== "all" ? catParam : null;
   const activeLevel = levelParam && levelParam !== "all-levels" ? levelParam.toUpperCase() : null;
 
-  // Fetch all videos for filter counts (unfiltered)
-  const allVideos = await prisma.video.findMany({
-    select: { category: true, level: true },
-  });
+  let allVideos: { category: string; level: string }[] = [];
+  let videos: {
+    id: string;
+    title: string;
+    youtubeId: string;
+    duration: number;
+    level: string;
+    category: string;
+    thumbnailUrl: string;
+    createdAt: Date;
+    _count: { sentences: number };
+  }[] = [];
 
-  // Build category options from real data
+  try {
+    allVideos = await prisma.video.findMany({
+      select: { category: true, level: true },
+    });
+
+    videos = await prisma.video.findMany({
+      where: {
+        ...(activeCategory ? { category: activeCategory } : {}),
+        ...(activeLevel ? { level: activeLevel } : {}),
+      },
+      include: { _count: { select: { sentences: true } } },
+    });
+  } catch (err) {
+    console.error("Database connection failed in dictation/page.tsx:", err);
+  }
+
   const catCounts = allVideos.reduce<Record<string, number>>((acc, v) => {
     if (v.category && v.category !== "general") {
       acc[v.category] = (acc[v.category] ?? 0) + 1;
@@ -55,7 +78,6 @@ export default async function DictationPage({ searchParams }: PageProps) {
     .sort((a, b) => b[1] - a[1])
     .map(([label, count]) => ({ id: label, label, count }));
 
-  // Build level options from real data
   const levelCounts = allVideos.reduce<Record<string, number>>((acc, v) => {
     if (v.level) acc[v.level] = (acc[v.level] ?? 0) + 1;
     return acc;
@@ -63,16 +85,6 @@ export default async function DictationPage({ searchParams }: PageProps) {
 
   const levels = LEVEL_ORDER.filter((l) => levelCounts[l])
     .map((l) => ({ id: l.toLowerCase(), label: l, count: levelCounts[l] }));
-
-  // Fetch filtered videos
-  const videos = await prisma.video.findMany({
-    where: {
-      ...(activeCategory ? { category: activeCategory } : {}),
-      ...(activeLevel ? { level: activeLevel } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { sentences: true } } },
-  });
 
   const byCategory = videos.reduce<Record<string, typeof videos>>((acc, v) => {
     (acc[v.category] ??= []).push(v);
