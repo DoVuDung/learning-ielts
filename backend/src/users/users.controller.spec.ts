@@ -83,4 +83,32 @@ describe('UsersController', () => {
       expect(mockUsersService.getUpgradeHistory).toHaveBeenCalledWith('user-1');
     });
   });
+
+  describe('handleVietQrWebhook', () => {
+    it('calls usersService.upgradeAccount with webhook dto', async () => {
+      const dto = {
+        userId: 'user-1',
+        orderId: 'VIETQR-999',
+        plan: 'PREMIUM_MONTHLY',
+        durationDays: 30,
+        amount: 199000,
+      };
+      const expectedResponse = {
+        user: { ...mockUser, isPremium: true },
+        transaction: { id: 'tx-2', orderId: 'VIETQR-999' },
+        idempotent: false,
+      };
+      mockUsersService.upgradeAccount.mockResolvedValue(expectedResponse);
+
+      const result = await controller.handleVietQrWebhook(dto);
+
+      expect(result).toEqual(expectedResponse);
+      expect(mockUsersService.upgradeAccount).toHaveBeenCalledWith('user-1', {
+        orderId: 'VIETQR-999',
+        plan: 'PREMIUM_MONTHLY',
+        durationDays: 30,
+        amount: 199000,
+      });
+    });
+  });
 });

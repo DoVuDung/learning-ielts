@@ -10,6 +10,7 @@ import { TranscriptModule } from './transcript/transcript.module';
 import { ProgressModule } from './progress/progress.module';
 import { WordsModule } from './words/words.module';
 import { SpeakingModule } from './speaking/speaking.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SpeakingModule } from './speaking/speaking.module';
     ProgressModule,
     WordsModule,
     SpeakingModule,
+    AdminModule,
   ],
   providers: [
     {

@@ -44,4 +44,19 @@ export class UsersController {
   async getMyUpgradeHistory(@Req() req: RequestWithUser) {
     return this.usersService.getUpgradeHistory(req.user.id);
   }
+
+  /**
+   * Webhook endpoint for VietQR / banking automation (Casso / SePay / VietQR)
+   * Processes concurrent payment notifications safely with ACID transaction guarantees.
+   */
+  @Post('webhook/vietqr')
+  @HttpCode(HttpStatus.OK)
+  async handleVietQrWebhook(@Body() dto: import('./dto/vietqr-webhook.dto').VietQrWebhookDto) {
+    return this.usersService.upgradeAccount(dto.userId, {
+      orderId: dto.orderId,
+      plan: dto.plan,
+      durationDays: dto.durationDays,
+      amount: dto.amount,
+    });
+  }
 }

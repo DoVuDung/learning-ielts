@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>16/16</span>
+                <span class='fraction'>0/16</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">80% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>4/5</span>
+                <span class='fraction'>0/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>12/12</span>
+                <span class='fraction'>0/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -97,8 +97,8 @@
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
 <a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<a name='L35'></a><a href='#L35'>35</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -107,32 +107,32 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Injectable } from '@nestjs/common';
-import { YoutubeTranscript } from 'youtube-transcript';
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Injectable } from '@nestjs/common';</span>
+<span class="cstat-no" title="statement not covered" >import { YoutubeTranscript } from 'youtube-transcript';</span>
 &nbsp;
 export interface TranscriptLine {
   text: string;
@@ -141,28 +141,28 @@ export interface TranscriptLine {
   lang: string;
 }
 &nbsp;
-const ALLOWED_LANGS = new Set(['en', 'vi']);
-const NON_LATIN_SCRIPT_RE = /[؀-ۿ֐-׿ݐ-ݿࢠ-ࣿ]/;
+const ALLOWED_LANGS = <span class="cstat-no" title="statement not covered" >new Set(['en', 'vi']);</span>
+const NON_LATIN_SCRIPT_RE = <span class="cstat-no" title="statement not covered" >/[؀-ۿ֐-׿ݐ-ݿࢠ-ࣿ]/;</span>
 &nbsp;
 @Injectable()
-export class TranscriptService {
-  async fetch(videoId: string, rawLang: string): Promise&lt;TranscriptLine[]&gt; {
-    const lang = ALLOWED_LANGS.has(rawLang) ? rawLang : 'en';
+export <span class="cstat-no" title="statement not covered" >class <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" >TranscriptService </span>{</span></span>
+<span class="fstat-no" title="function not covered" >  async </span>fetch(videoId: string, rawLang: string): Promise&lt;TranscriptLine[]&gt; {
+    const lang = <span class="cstat-no" title="statement not covered" >ALLOWED_LANGS.has(rawLang) ? rawLang : 'en';</span>
 &nbsp;
-    const lines = await YoutubeTranscript.fetchTranscript(videoId, { lang });
-    const result: TranscriptLine[] = lines.map((l) =&gt; ({
+    const lines = <span class="cstat-no" title="statement not covered" >await YoutubeTranscript.fetchTranscript(videoId, { lang });</span>
+    const result: TranscriptLine[] = <span class="cstat-no" title="statement not covered" >lines.map(<span class="fstat-no" title="function not covered" >(l</span>) =&gt; (<span class="cstat-no" title="statement not covered" >{</span></span>
       text: l.text.replaceAll('\n', ' ').trim(),
       offset: Math.round(l.offset),
       duration: Math.round(l.duration),
-      lang: (l as { lang?: string }).lang ?? <span class="branch-1 cbranch-no" title="branch not covered" >lang,</span>
+      lang: (l as { lang?: string }).lang ?? lang,
     }));
 &nbsp;
-    const sample = result.slice(0, 10).map((l) =&gt; l.text).join(' ');
-    if (NON_LATIN_SCRIPT_RE.test(sample)) {
-      throw new Error('Transcript language not supported. Only English (en) and Vietnamese (vi) are allowed.');
+    const sample = <span class="cstat-no" title="statement not covered" >result.slice(0, 10).map(<span class="fstat-no" title="function not covered" >(l</span>) =&gt; <span class="cstat-no" title="statement not covered" >l.text)</span>.join(' ');</span>
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (NON_LATIN_SCRIPT_RE.test(sample)) {</span>
+<span class="cstat-no" title="statement not covered" >      throw new Error('Transcript language not supported. Only English (en) and Vietnamese (vi) are allowed.');</span>
     }
 &nbsp;
-    return result;
+<span class="cstat-no" title="statement not covered" >    return result;</span>
   }
 }
 &nbsp;</pre></td></tr></table></pre>
@@ -172,7 +172,7 @@ export class TranscriptService {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-07-11T08:25:00.365Z
+                at 2026-07-11T09:08:26.325Z
             </div>
         <script src="../prettify.js"></script>
         <script>
