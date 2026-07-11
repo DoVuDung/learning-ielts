@@ -10,10 +10,11 @@ describe("TopNav component", () => {
     expect(screen.getByText("Chọn bài học từ thư viện IELTS V3")).toBeDefined();
   });
 
-  it("renders streak badge", () => {
+  it("renders streak badge and upgrade link", () => {
     render(<TopNav title="Trang chủ" />);
 
     expect(screen.getByText("12 Ngày")).toBeDefined();
+    expect(screen.getByText("Nâng cấp PRO")).toBeDefined();
   });
 
   it("renders search bar when showSearch is true", () => {

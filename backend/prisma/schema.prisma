@@ -14,14 +14,38 @@ model User {
   email     String   @unique
   name      String
   avatarUrl String?
-  isPremium Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isPremium        Boolean              @default(false)
+  premiumExpiresAt DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   videos   Video[]
   progress DictationProgress[]
   notes    Note[]
   cards    Card[]
+  upgrades UpgradeTransaction[]
+}
+
+enum UpgradeStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model UpgradeTransaction {
+  id           String        @id @default(cuid())
+  userId       String
+  orderId      String        @unique
+  amount       Int           @default(0)
+  plan         String        @default("PREMIUM_MONTHLY")
+  durationDays Int           @default(30)
+  status       UpgradeStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  completedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
 
 model Video {

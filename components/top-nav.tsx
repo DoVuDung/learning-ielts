@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   BookOpen,
   CheckCircle2,
@@ -9,6 +10,7 @@ import {
   Flame,
   Bell,
   Settings,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -108,6 +110,15 @@ export function TopNav({
           </div>
         ) : (
           <div className="flex items-center gap-3">
+            {/* Upgrade PRO Badge */}
+            <Link
+              href="/upgrade"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 border border-amber-500/40 text-amber-300 hover:from-amber-500/30 hover:to-yellow-500/30 transition-all group shadow-sm"
+            >
+              <Crown className="size-3.5 text-amber-400 group-hover:rotate-12 transition-transform" />
+              <span className="text-xs font-bold tracking-wide">Nâng cấp PRO</span>
+            </Link>
+
             {/* Streak Indicator matching V3 */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
               <Flame className="size-3.5 fill-amber-400 text-amber-400 animate-pulse" />
