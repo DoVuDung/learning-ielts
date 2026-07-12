@@ -98,8 +98,12 @@ export function SideNav({
     setLoggingOut(true);
     try {
       await authApi.logout();
+    } catch {
+      // Dù API lỗi vẫn xóa token và redirect
+      try { localStorage.removeItem('access_token'); } catch {}
     } finally {
-      router.push("/login");
+      setUserMenuOpen(false);
+      router.push('/login');
     }
   }
 
@@ -209,6 +213,16 @@ export function SideNav({
                   {loading ? "" : user?.email || ""}
                 </p>
               </div>
+              <a
+                href={`http://localhost:5173/?token=${typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : ""}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setUserMenuOpen(false)}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold text-amber-500 hover:bg-amber-500/10 transition-colors border-b border-border/60"
+              >
+                <span className="size-4 shrink-0 text-amber-500 flex items-center justify-center">👑</span>
+                <span>Cổng Quản Trị (Admin Portal)</span>
+              </a>
               <Link
                 href="/settings"
                 onClick={() => setUserMenuOpen(false)}

@@ -71,13 +71,15 @@ export const authApi = {
   me: () => request<{ id: string; email: string; name: string; avatarUrl: string | null; isPremium: boolean }>('/auth/me'),
 
   logout: async () => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('access_token');
-      } catch {}
-      document.cookie = 'access_token=; path=/; max-age=0';
+    try {
+      await request<{ message: string }>('/auth/logout');
+    } finally {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('access_token');
+        } catch {}
+      }
     }
-    return request<{ message: string }>('/auth/logout');
   },
 };
 

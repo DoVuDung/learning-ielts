@@ -72,6 +72,10 @@
       "!**/main.ts"
     ],
     "coverageDirectory": "../coverage",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/../coverage/"
+    ],
     "testEnvironment": "node",
     "coverageThreshold": {
       "global": {

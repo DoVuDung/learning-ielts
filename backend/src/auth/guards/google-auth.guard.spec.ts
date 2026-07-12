@@ -1,32 +1,60 @@
+import { ExecutionContext } from '@nestjs/common';
 import { GoogleAuthGuard } from './google-auth.guard';
 
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
 describe('GoogleAuthGuard', () => {
+  let guard: GoogleAuthGuard;
+
+  beforeEach(() => {
+    guard = new GoogleAuthGuard();
+  });
+
   it('is instantiable', () => {
-    const guard = new GoogleAuthGuard();
     expect(guard).toBeDefined();
   });
 
-  it('extracts query state into authenticate options', () => {
-    const guard = new GoogleAuthGuard();
-    const mockContext: any = {
-      switchToHttp: () => ({
-        getRequest: () => ({ query: { state: 'https://bap-english.vercel.app' } }),
-      }),
-    };
-    expect(guard.getAuthenticateOptions(mockContext)).toEqual({
-      state: 'https://bap-english.vercel.app',
-    });
+  it('extends AuthGuard("google")', () => {
+    const { AuthGuard } = require('@nestjs/passport');
+    expect(guard).toBeInstanceOf(AuthGuard('google'));
   });
 
-  it('handles missing query state gracefully', () => {
-    const guard = new GoogleAuthGuard();
-    const mockContext: any = {
-      switchToHttp: () => ({
-        getRequest: () => ({}),
-      }),
-    };
-    expect(guard.getAuthenticateOptions(mockContext)).toEqual({
-      state: undefined,
+  // ─── getAuthenticateOptions ───────────────────────────────────────────────
+
+  describe('getAuthenticateOptions', () => {
+    function mockContext(query: Record<string, any>): ExecutionContext {
+      return {
+        switchToHttp: () => ({
+          getRequest: () => ({ query }),
+        }),
+      } as any;
+    }
+
+    it('returns state from query when state is present', () => {
+      const ctx = mockContext({ state: 'https://bap-english.vercel.app' });
+      expect(guard.getAuthenticateOptions(ctx)).toEqual({
+        state: 'https://bap-english.vercel.app',
+      });
+    });
+
+    it('returns undefined state when query has no state key', () => {
+      const ctx = mockContext({});
+      expect(guard.getAuthenticateOptions(ctx)).toEqual({ state: undefined });
+    });
+
+    it('returns undefined state when request has no query object', () => {
+      const ctx: any = {
+        switchToHttp: () => ({
+          getRequest: () => ({}),
+        }),
+      };
+      expect(guard.getAuthenticateOptions(ctx)).toEqual({ state: undefined });
+    });
+
+    it('passes multiple allowed origins state string through unchanged', () => {
+      const state = 'https://prod.example.com';
+      const ctx = mockContext({ state });
+      expect(guard.getAuthenticateOptions(ctx)).toEqual({ state });
     });
   });
 });

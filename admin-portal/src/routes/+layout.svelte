@@ -26,16 +26,26 @@
   let showTokenModal = false;
   let tokenInput = '';
   let currentToken = '';
+  let unauthorizedError = false;
 
   onMount(() => {
     currentToken = getAccessToken() || '';
     tokenInput = currentToken;
+
+    const handleUnauthorized = () => {
+      unauthorizedError = true;
+      showTokenModal = true;
+    };
+    window.addEventListener('admin:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('admin:unauthorized', handleUnauthorized);
   });
 
   function handleSaveToken() {
     setAccessToken(tokenInput);
     currentToken = tokenInput.trim();
     showTokenModal = false;
+    unauthorizedError = false;
+    window.location.reload();
   }
 
   function handleClearToken() {
@@ -43,6 +53,7 @@
     tokenInput = '';
     currentToken = '';
     showTokenModal = false;
+    unauthorizedError = false;
   }
 </script>
 
@@ -164,8 +175,16 @@
           ✕
         </button>
       </div>
+      {#if unauthorizedError}
+        <div class="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300 space-y-1">
+          <p class="font-bold">⚠️ API từ chối truy cập (401 Unauthorized)</p>
+          <p class="text-[11px] leading-relaxed text-rose-200/80">
+            Bạn chưa có Bearer Token hoặc Token đã hết hạn. Hãy vào <b>Client Web App (localhost:3000)</b>, mở Menu tài khoản và nhấp vào <b>Cổng Quản Trị (Admin Portal)</b> để hệ thống tự động đồng bộ Token, hoặc dán Token vào ô bên dưới.
+          </p>
+        </div>
+      {/if}
       <p class="text-xs text-gray-400 leading-relaxed">
-        Nhập JWT Access Token có quyền ADMIN (lấy từ Client Web App sau khi đăng nhập) để gửi kèm trong Header <code class="text-amber-400">Authorization: Bearer &lt;token&gt;</code> cho mọi yêu cầu API.
+        Nhập JWT Access Token có quyền ADMIN để gửi kèm trong Header <code class="text-amber-400">Authorization: Bearer &lt;token&gt;</code> cho mọi yêu cầu API.
       </p>
       <div>
         <textarea

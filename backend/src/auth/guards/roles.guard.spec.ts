@@ -3,81 +3,143 @@ import { Reflector } from '@nestjs/core';
 import { RolesGuard } from './roles.guard';
 import { Role } from '../roles.enum';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function createMockContext(user?: any): ExecutionContext {
+  return {
+    getHandler: () => () => {},
+    getClass: () => class TestController {},
+    switchToHttp: () => ({
+      getRequest: () => ({ user }),
+    }),
+  } as any;
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
 describe('RolesGuard', () => {
   let guard: RolesGuard;
   let reflector: Reflector;
+  let origAdminEmails: string | undefined;
 
   beforeEach(() => {
     reflector = new Reflector();
     guard = new RolesGuard(reflector);
+    origAdminEmails = process.env.ADMIN_EMAILS;
   });
 
-  function createMockContext(user?: any): ExecutionContext {
-    return {
-      getHandler: () => () => {},
-      getClass: () => class Test {},
-      switchToHttp: () => ({
-        getRequest: () => ({ user }),
-      }),
-    } as any;
-  }
+  afterEach(() => {
+    if (origAdminEmails === undefined) {
+      delete process.env.ADMIN_EMAILS;
+    } else {
+      process.env.ADMIN_EMAILS = origAdminEmails;
+    }
+  });
 
-  it('should be defined', () => {
+  it('is defined', () => {
     expect(guard).toBeDefined();
   });
 
-  it('should allow access if no roles are required', () => {
+  // ─── No roles required ─────────────────────────────────────────────────────
+
+  it('allows access when no roles are required (undefined)', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
-
-    const context = createMockContext({ id: '1', role: Role.USER });
-    expect(guard.canActivate(context)).toBe(true);
+    const ctx = createMockContext({ id: '1', role: Role.USER });
+    expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('should allow access if required roles list is empty', () => {
+  it('allows access when required roles list is empty', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([]);
-
-    const context = createMockContext({ id: '1', role: Role.USER });
-    expect(guard.canActivate(context)).toBe(true);
+    const ctx = createMockContext({ id: '1', role: Role.USER });
+    expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('should throw ForbiddenException if user is undefined', () => {
+  // ─── Missing or invalid user ───────────────────────────────────────────────
+
+  it('throws ForbiddenException with correct message when user is undefined', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
-
-    const context = createMockContext(undefined);
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(context)).toThrow('Access denied: user role not found');
+    const ctx = createMockContext(undefined);
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(ctx)).toThrow('Access denied: user role not found');
   });
 
-  it('should throw ForbiddenException if user has no role property', () => {
+  it('throws ForbiddenException when user has no role property', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
-
-    const context = createMockContext({ id: '1' });
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(context)).toThrow('Access denied: user role not found');
+    const ctx = createMockContext({ id: '1', email: 'norole@example.com' });
+    // email is not in default admin list
+    delete process.env.ADMIN_EMAILS;
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(ctx)).toThrow('Access denied: user role not found');
   });
 
-  it('should throw ForbiddenException if user role does not match required roles', () => {
+  // ─── Insufficient role ─────────────────────────────────────────────────────
+
+  it('throws ForbiddenException when user role does not match required roles', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
-
-    const context = createMockContext({ id: '1', role: Role.USER });
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-    expect(() => guard.canActivate(context)).toThrow('Access denied: insufficient role');
+    const ctx = createMockContext({ id: '1', role: Role.USER });
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(ctx)).toThrow('Access denied: insufficient role');
   });
 
-  it('should allow access if user role matches one of required roles', () => {
+  // ─── Sufficient role ───────────────────────────────────────────────────────
+
+  it('allows access when user role matches the single required role', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+    const ctx = createMockContext({ id: '1', role: Role.ADMIN });
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('allows access when user role matches one of multiple required roles', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN, Role.USER]);
-
-    const context = createMockContext({ id: '1', role: Role.ADMIN });
-    expect(guard.canActivate(context)).toBe(true);
+    const ctx = createMockContext({ id: '1', role: Role.USER });
+    expect(guard.canActivate(ctx)).toBe(true);
   });
 
-  it('should allow access if user email is in admin emails even without role property', () => {
+  // ─── Email-based ADMIN promotion ───────────────────────────────────────────
+
+  it('promotes user to ADMIN when email is in default ADMIN_EMAILS', () => {
+    delete process.env.ADMIN_EMAILS;
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
 
-    const context = createMockContext({
+    const ctx = createMockContext({
       id: '1',
       email: 'vudungoik2016@gmail.com',
+      // no role property – guard should infer ADMIN from email
     });
-    expect(guard.canActivate(context)).toBe(true);
+
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('promotes user to ADMIN when email matches custom ADMIN_EMAILS env var', () => {
+    process.env.ADMIN_EMAILS = 'custom@admin.com,another@admin.com';
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+
+    const ctx = createMockContext({ id: '1', email: 'another@admin.com' });
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('is case-insensitive when matching admin email', () => {
+    process.env.ADMIN_EMAILS = 'Admin@Example.com';
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+
+    const ctx = createMockContext({ id: '1', email: 'admin@example.com' });
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('does NOT promote non-admin email to ADMIN role', () => {
+    process.env.ADMIN_EMAILS = 'admin@example.com';
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+
+    const ctx = createMockContext({ id: '1', email: 'regular@user.com' });
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(ctx)).toThrow('Access denied: user role not found');
+  });
+
+  it('handles empty ADMIN_EMAILS env var gracefully', () => {
+    process.env.ADMIN_EMAILS = '';
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+
+    const ctx = createMockContext({ id: '1', email: 'someone@example.com' });
+    expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
   });
 });

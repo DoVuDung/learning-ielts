@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
     const role =
       (user as any).role === 'ADMIN' ||
-      adminEmails.includes(user.email.toLowerCase())
+      (user.email && adminEmails.includes(user.email.toLowerCase()))
         ? 'ADMIN'
         : ((user as any).role ?? 'USER');
 

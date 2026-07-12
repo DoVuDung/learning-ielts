@@ -2,6 +2,16 @@ const API_BASE = (import.meta.env?.VITE_API_URL || 'http://localhost:3001') + '/
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token') || params.get('access_token');
+    if (urlToken && urlToken !== 'null' && urlToken !== 'undefined') {
+      localStorage.setItem('access_token', urlToken);
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      return urlToken;
+    }
+  } catch {}
   return localStorage.getItem('access_token');
 }
 
@@ -24,7 +34,7 @@ async function adminFetch(endpoint: string, options: RequestInit = {}) {
     ...(options.headers as Record<string, string>),
   };
 
-  if (token) {
+  if (token && token !== 'null' && token !== 'undefined') {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
@@ -34,6 +44,11 @@ async function adminFetch(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
+    if ((res.status === 401 || res.status === 403) && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('admin:unauthorized', { detail: { status: res.status } }),
+      );
+    }
     let msg = `Request failed with status ${res.status}`;
     try {
       const data = await res.json();
