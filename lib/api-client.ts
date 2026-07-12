@@ -3,18 +3,31 @@
  * All requests include credentials (HttpOnly cookie) automatically.
  */
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const BASE_URL = (
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+).replace(/\/+$/, '');
+
+function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const fromStorage = localStorage.getItem('access_token');
+    if (fromStorage) return fromStorage;
+  } catch {}
+  const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const token = getAccessToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -50,11 +63,24 @@ async function request<T>(
 
 export const authApi = {
   /** Start Google OAuth flow — redirect browser to BE */
-  googleLoginUrl: () => `${BASE_URL}/auth/google`,
+  googleLoginUrl: () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return origin
+      ? `${BASE_URL}/auth/google?state=${encodeURIComponent(origin)}`
+      : `${BASE_URL}/auth/google`;
+  },
 
   me: () => request<{ id: string; email: string; name: string; avatarUrl: string | null; isPremium: boolean }>('/auth/me'),
 
-  logout: () => request<{ message: string }>('/auth/logout'),
+  logout: async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('access_token');
+      } catch {}
+      document.cookie = 'access_token=; path=/; max-age=0';
+    }
+    return request<{ message: string }>('/auth/logout');
+  },
 };
 
 // ─── Videos ───────────────────────────────────────────────────────────────────

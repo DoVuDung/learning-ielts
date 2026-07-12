@@ -16,8 +16,14 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Lớp 3: Strict CORS
+  const rawFrontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+  const allowedOrigins = rawFrontendUrl
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

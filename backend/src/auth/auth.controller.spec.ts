@@ -79,6 +79,42 @@ describe('AuthController', () => {
       );
       process.env.FRONTEND_URL = origEnv;
     });
+
+    it('resolves frontend url from state when multiple origins are allowed', () => {
+      const req: any = {
+        user: mockAuthUser,
+        query: { state: 'https://bap-english.vercel.app' },
+      };
+      const res = makeResponse() as any;
+      const origEnv = process.env.FRONTEND_URL;
+      process.env.FRONTEND_URL =
+        'http://localhost:3000,https://bap-english.vercel.app/';
+
+      controller.googleCallback(req, res);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        'https://bap-english.vercel.app/auth/callback?token=mocked-jwt-token',
+      );
+      process.env.FRONTEND_URL = origEnv;
+    });
+
+    it('falls back to default origin when state does not match allowed origins', () => {
+      const req: any = {
+        user: mockAuthUser,
+        query: { state: 'https://evil.com' },
+      };
+      const res = makeResponse() as any;
+      const origEnv = process.env.FRONTEND_URL;
+      process.env.FRONTEND_URL =
+        'https://bap-english.vercel.app,http://localhost:3000';
+
+      controller.googleCallback(req, res);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        'https://bap-english.vercel.app/auth/callback?token=mocked-jwt-token',
+      );
+      process.env.FRONTEND_URL = origEnv;
+    });
   });
 
   describe('getProfile', () => {

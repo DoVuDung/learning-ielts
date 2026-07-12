@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:backend": "cd backend && npm run start:dev",
+    "dev:admin": "cd admin-portal && npm run dev",
     "build": "next build",
     "build:backend": "cd backend && npm run build",
     "build:all": "npm run build:backend && npm run build",
