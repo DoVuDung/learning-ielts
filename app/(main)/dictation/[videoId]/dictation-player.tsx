@@ -273,6 +273,8 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
   const [checked, setChecked] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [autoNext, setAutoNext] = useState(false);
+  const [loopSentence, setLoopSentence] = useState(false);
+  const [speed, setSpeed] = useState(1);
   const [hideTranscript, setHideTranscript] = useState(false);
   const [done, setDone] = useState(initialDone);
   const [savedWords, setSavedWords] = useState<Set<string>>(new Set());
@@ -284,6 +286,10 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
   const playerRef = useRef<HTMLIFrameElement>(null);
   const sentencesRef = useRef(sentences);
   sentencesRef.current = sentences;
+  const currentRef = useRef(current);
+  currentRef.current = current;
+  const loopSentenceRef = useRef(loopSentence);
+  loopSentenceRef.current = loopSentence;
   const dragging = useRef(false);
   const startY = useRef(0);
   const startH = useRef(DEFAULT_H);
@@ -334,16 +340,21 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
     sendCommand("seekTo", [Math.floor(ms / 1000), true]);
   }, [sendCommand]);
 
-  /** Schedule auto-pause at the end of a sentence */
+  /** Schedule auto-pause or loop at the end of a sentence */
   const scheduleAutoPause = useCallback((s: typeof sentence) => {
     if (autoPauseTimer.current) clearTimeout(autoPauseTimer.current);
-    const duration = s.endMs - s.startMs;
+    const duration = (s.endMs - s.startMs) / Math.max(speed, 0.25);
     if (duration > 0) {
       autoPauseTimer.current = setTimeout(() => {
-        sendCommand("pauseVideo");
-      }, duration + 300);
+        if (loopSentenceRef.current) {
+          seekTo(s.startMs);
+          scheduleAutoPause(s);
+        } else {
+          sendCommand("pauseVideo");
+        }
+      }, duration + 350);
     }
-  }, [sendCommand]);
+  }, [sendCommand, speed, seekTo]);
 
   // ── Navigate to sentence (resets all input state) ─────────────────────
   function goTo(index: number) {
@@ -438,7 +449,11 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
     };
   }, []);
 
-  // ── Subscribe to YouTube time updates to sync transcript sidebar ──────
+  useEffect(() => {
+    sendCommand("setPlaybackRate", [speed]);
+  }, [speed, sendCommand]);
+
+  // ── Subscribe to YouTube time updates ────────────────────────────────
   useEffect(() => {
     function onMessage(e: MessageEvent) {
       if (!playerRef.current || e.source !== playerRef.current.contentWindow) return;
@@ -450,6 +465,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
           JSON.stringify({ event: "listening" }),
           "https://www.youtube.com",
         );
+        sendCommand("setPlaybackRate", [speed]);
       }
 
       if (data.event === "infoDelivery") {
@@ -457,18 +473,19 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
         const sec = info?.currentTime as number | undefined;
         if (sec == null) return;
         const ms = sec * 1000;
-        const list = sentencesRef.current;
-        for (let i = list.length - 1; i >= 0; i--) {
-          if (ms >= list[i].startMs) {
-            setCurrent((prev) => (prev === i ? prev : i));
-            break;
+        const currentSentence = sentencesRef.current[currentRef.current];
+        if (currentSentence && ms >= currentSentence.endMs + 150) {
+          if (loopSentenceRef.current) {
+            sendCommand("seekTo", [Math.floor(currentSentence.startMs / 1000), true]);
+          } else {
+            sendCommand("pauseVideo");
           }
         }
       }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [sendCommand, speed]);
 
   // ── Keyboard ───────────────────────────────────────────────────────────
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -478,8 +495,21 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (allCorrect || revealed) goNext();
-      else setChecked(true);
+      const allTypedWords = raw.trim().split(/\s+/).filter(Boolean);
+      const isCompleteCorrect =
+        allTypedWords.length === expectedWords.length &&
+        allTypedWords.every((w, i) => normalize(w) === normalize(expectedWords[i]));
+
+      if (allCorrect || revealed || isCompleteCorrect) {
+        if (isCompleteCorrect && current + 1 > done) {
+          const nextDone = current + 1;
+          setDone(nextDone);
+          saveProgress(nextDone);
+        }
+        goNext();
+      } else {
+        setChecked(true);
+      }
     }
   }
 
@@ -494,10 +524,13 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
     setChecked(false);
 
     const { done: typedDone } = parseInput(next);
+    const allTypedWords = next.trim().split(/\s+/).filter(Boolean);
+
     const justAllCorrect =
-      typedDone.length === expectedWords.length &&
-      next.endsWith(" ") &&
-      typedDone.every((w, i) => normalize(w) === normalize(expectedWords[i]));
+      ((typedDone.length === expectedWords.length && next.endsWith(" ")) ||
+        allTypedWords.length === expectedWords.length) &&
+      allTypedWords.length === expectedWords.length &&
+      allTypedWords.every((w, i) => normalize(w) === normalize(expectedWords[i]));
 
     if (justAllCorrect) {
       if (current + 1 > done) {
@@ -593,7 +626,33 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
             Enter
           </kbd>
           <span>{t.nextShortcut}</span>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 border border-border rounded-lg px-1.5 py-0.5 bg-background">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed</span>
+              {[1, 0.85, 0.7].map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  onClick={() => setSpeed(rate)}
+                  className={cn(
+                    "px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors",
+                    speed === rate
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {rate}x
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Switch
+                checked={loopSentence}
+                onCheckedChange={setLoopSentence}
+                className="scale-75"
+              />
+              <span>Loop</span>
+            </label>
             <label className="flex items-center gap-1.5 cursor-pointer">
               <Switch
                 checked={autoNext}
@@ -808,10 +867,7 @@ export function DictationPlayer({ video, sentences, initialDone }: Props) {
               <button
                 key={s.id}
                 ref={isCurrent ? transcriptItemRef : null}
-                onClick={() => {
-                  setCurrent(i);
-                  seekTo(s.startMs);
-                }}
+                onClick={() => goTo(i)}
                 className={cn(
                   "w-full text-left px-4 py-3 flex gap-3 transition-colors border-l-2",
                   isCurrent

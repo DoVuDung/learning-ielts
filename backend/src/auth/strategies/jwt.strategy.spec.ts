@@ -63,11 +63,14 @@ describe('JwtStrategy', () => {
     );
   });
 
-  it('extracts token from req.cookies.access_token', () => {
+  it('extracts token from Authorization Bearer header', () => {
     const extractor = (strategy as any)._jwtFromRequest;
     if (extractor) {
-      expect(extractor({ cookies: { access_token: 'test-token' }, headers: {} })).toBe('test-token');
-      expect(extractor({ cookies: {}, headers: {} })).toBeNull();
+      expect(
+        extractor({
+          headers: { authorization: 'Bearer test-token' },
+        }),
+      ).toBe('test-token');
       expect(extractor({ headers: {} })).toBeNull();
     }
   });

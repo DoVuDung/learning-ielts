@@ -46,7 +46,7 @@ describe('AuthController', () => {
   });
 
   describe('googleCallback', () => {
-    it('signs token, sets cookie, and redirects to frontend', () => {
+    it('signs token and redirects to frontend with token in query param', () => {
       const req: any = { user: mockAuthUser };
       const res = makeResponse() as any;
       const origEnv = process.env.FRONTEND_URL;
@@ -55,11 +55,6 @@ describe('AuthController', () => {
       controller.googleCallback(req, res);
 
       expect(authServiceMock.login).toHaveBeenCalledWith(mockAuthUser);
-      expect(res.cookie).toHaveBeenCalledWith(
-        'access_token',
-        'mocked-jwt-token',
-        expect.objectContaining({ httpOnly: true }),
-      );
       expect(res.redirect).toHaveBeenCalledWith(
         'http://localhost:3000/auth/callback?token=mocked-jwt-token',
       );
@@ -126,10 +121,9 @@ describe('AuthController', () => {
   });
 
   describe('logout', () => {
-    it('clears the access_token cookie and returns success message', () => {
+    it('returns success message', () => {
       const res = makeResponse() as any;
       controller.logout(res);
-      expect(res.clearCookie).toHaveBeenCalledWith('access_token');
       expect(res.json).toHaveBeenCalledWith({ message: 'Logged out successfully' });
     });
   });

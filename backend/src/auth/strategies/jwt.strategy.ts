@@ -8,10 +8,7 @@ import type { JwtPayload } from '../dto/auth.dto';
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly usersService: UsersService) {
     super({
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        (req) => req?.cookies?.access_token ?? null,
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ]),
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: process.env.JWT_SECRET ?? 'fallback-secret',
     });
   }

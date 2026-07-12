@@ -69,13 +69,16 @@ async function bootstrap() {
     .setTitle('BapEnglish API')
     .setDescription(
       'REST API for the BapEnglish IELTS learning platform.\n\n' +
-      '**Auth:** All protected routes require an `access_token` HttpOnly cookie ' +
-      '(set automatically after Google OAuth login). ' +
-      'To test in Swagger UI, first visit `/auth/google` in the browser to log in, ' +
-      'then return here — the cookie will be sent automatically.',
+      '**Auth:** All protected routes require a Bearer token in the `Authorization` header (`Authorization: Bearer <token>`). ' +
+      'To test in Swagger UI, click Authorize and enter your JWT token.',
     )
     .setVersion('1.0')
-    .addCookieAuth('access_token')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Enter JWT token',
+    })
     .addTag('auth', 'Google OAuth 2.0 & session management')
     .addTag('videos', 'YouTube video import & management')
     .addTag('transcript', 'YouTube subtitle fetching')

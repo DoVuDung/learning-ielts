@@ -56,13 +56,6 @@ export class AuthController {
     const token = this.authService.login(req.user);
     const frontendUrl = this.resolveFrontendUrl(req);
 
-    res.cookie('access_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
     return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
   }
 
@@ -73,11 +66,10 @@ export class AuthController {
     return req.user;
   }
 
-  /** Clear the access-token cookie */
+  /** Logout */
   @Get('logout')
   @HttpCode(HttpStatus.OK)
   logout(@Res() res: Response) {
-    res.clearCookie('access_token');
     return res.json({ message: 'Logged out successfully' });
   }
 }

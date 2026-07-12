@@ -17,7 +17,6 @@ function CallbackHandler() {
 
     const token = searchParams.get("token");
     if (token) {
-      document.cookie = `access_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       try {
         localStorage.setItem("access_token", token);
       } catch {}

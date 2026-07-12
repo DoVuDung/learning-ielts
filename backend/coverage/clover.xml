@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1783837089785" clover="3.2.0">
-  <project timestamp="1783837089785" name="All files">
-    <metrics statements="792" coveredstatements="780" conditionals="348" coveredconditionals="319" methods="144" coveredmethods="143" elements="1284" coveredelements="1242" complexity="0" loc="792" ncloc="792" packages="18" files="34" classes="34"/>
+<coverage generated="1783845168348" clover="3.2.0">
+  <project timestamp="1783845168348" name="All files">
+    <metrics statements="789" coveredstatements="777" conditionals="346" coveredconditionals="317" methods="143" coveredmethods="142" elements="1278" coveredelements="1236" complexity="0" loc="789" ncloc="789" packages="18" files="34" classes="34"/>
     <package name="admin">
       <metrics statements="103" coveredstatements="102" conditionals="52" coveredconditionals="49" methods="27" coveredmethods="27"/>
       <file name="admin.controller.ts" path="/Users/andydo/Desktop/learning-english-ielts/backend/src/admin/admin.controller.ts">
@@ -140,9 +140,9 @@
       </file>
     </package>
     <package name="auth">
-      <metrics statements="50" coveredstatements="50" conditionals="21" coveredconditionals="20" methods="12" coveredmethods="12"/>
+      <metrics statements="48" coveredstatements="48" conditionals="21" coveredconditionals="20" methods="12" coveredmethods="12"/>
       <file name="auth.controller.ts" path="/Users/andydo/Desktop/learning-english-ielts/backend/src/auth/auth.controller.ts">
-        <metrics statements="27" coveredstatements="27" conditionals="10" coveredconditionals="9" methods="7" coveredmethods="7"/>
+        <metrics statements="25" coveredstatements="25" conditionals="10" coveredconditionals="9" methods="7" coveredmethods="7"/>
         <line num="1" count="1" type="stmt"/>
         <line num="11" count="1" type="stmt"/>
         <line num="12" count="1" type="stmt"/>
@@ -164,12 +164,10 @@
         <line num="56" count="4" type="stmt"/>
         <line num="57" count="4" type="stmt"/>
         <line num="59" count="4" type="stmt"/>
-        <line num="66" count="4" type="stmt"/>
+        <line num="65" count="1" type="stmt"/>
+        <line num="66" count="1" type="stmt"/>
         <line num="72" count="1" type="stmt"/>
         <line num="73" count="1" type="stmt"/>
-        <line num="79" count="1" type="stmt"/>
-        <line num="80" count="1" type="stmt"/>
-        <line num="81" count="1" type="stmt"/>
       </file>
       <file name="auth.service.ts" path="/Users/andydo/Desktop/learning-english-ielts/backend/src/auth/auth.service.ts">
         <metrics statements="20" coveredstatements="20" conditionals="9" coveredconditionals="9" methods="4" coveredmethods="4"/>
@@ -252,7 +250,7 @@
       </file>
     </package>
     <package name="auth.strategies">
-      <metrics statements="22" coveredstatements="22" conditionals="15" coveredconditionals="14" methods="6" coveredmethods="6"/>
+      <metrics statements="21" coveredstatements="21" conditionals="13" coveredconditionals="12" methods="5" coveredmethods="5"/>
       <file name="google.strategy.ts" path="/Users/andydo/Desktop/learning-english-ielts/backend/src/auth/strategies/google.strategy.ts">
         <metrics statements="8" coveredstatements="8" conditionals="2" coveredconditionals="2" methods="2" coveredmethods="2"/>
         <line num="1" count="1" type="stmt"/>
@@ -265,7 +263,7 @@
         <line num="23" count="1" type="stmt"/>
       </file>
       <file name="jwt.strategy.ts" path="/Users/andydo/Desktop/learning-english-ielts/backend/src/auth/strategies/jwt.strategy.ts">
-        <metrics statements="14" coveredstatements="14" conditionals="13" coveredconditionals="12" methods="4" coveredmethods="4"/>
+        <metrics statements="13" coveredstatements="13" conditionals="11" coveredconditionals="10" methods="3" coveredmethods="3"/>
         <line num="1" count="1" type="stmt"/>
         <line num="2" count="1" type="stmt"/>
         <line num="3" count="1" type="stmt"/>
@@ -273,13 +271,12 @@
         <line num="8" count="1" type="stmt"/>
         <line num="9" count="5" type="stmt"/>
         <line num="10" count="5" type="stmt"/>
-        <line num="12" count="3" type="cond" truecount="2" falsecount="0"/>
-        <line num="20" count="3" type="stmt"/>
-        <line num="21" count="3" type="cond" truecount="1" falsecount="0"/>
-        <line num="23" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="25" count="2" type="stmt"/>
-        <line num="29" count="2" type="cond" truecount="4" falsecount="0"/>
-        <line num="34" count="2" type="stmt"/>
+        <line num="17" count="3" type="stmt"/>
+        <line num="18" count="3" type="cond" truecount="1" falsecount="0"/>
+        <line num="20" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="22" count="2" type="stmt"/>
+        <line num="26" count="2" type="cond" truecount="4" falsecount="0"/>
+        <line num="31" count="2" type="stmt"/>
       </file>
     </package>
     <package name="common.decorators">

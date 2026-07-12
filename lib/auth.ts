@@ -1,8 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-const COOKIE = "access_token";
 const EXPIRY = "7d";
 
 export type JwtPayload = { sub: string; email: string };
@@ -25,10 +24,15 @@ export async function verifyToken(token: string): Promise<JwtPayload | null> {
 }
 
 export async function getSession(): Promise<JwtPayload | null> {
-  const jar = await cookies();
-  const token = jar.get(COOKIE)?.value;
-  if (!token) return null;
-  return verifyToken(token);
+  try {
+    const reqHeaders = await headers();
+    const authHeader = reqHeaders.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      return verifyToken(token);
+    }
+  } catch {}
+  return null;
 }
 
 export function setTokenCookie(token: string, response: Response) {

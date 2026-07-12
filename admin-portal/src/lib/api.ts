@@ -1,14 +1,20 @@
 const API_BASE = (import.meta.env?.VITE_API_URL || 'http://localhost:3001') + '/admin';
 
-function getAccessToken(): string | null {
+export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
-  // Look in localStorage first
-  const localToken = localStorage.getItem('access_token');
-  if (localToken) return localToken;
+  return localStorage.getItem('access_token');
+}
 
-  // Otherwise check document.cookie
-  const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+export function setAccessToken(token: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('access_token', token.trim());
+  }
+}
+
+export function clearAccessToken(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('access_token');
+  }
 }
 
 async function adminFetch(endpoint: string, options: RequestInit = {}) {
@@ -25,7 +31,6 @@ async function adminFetch(endpoint: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
-    credentials: 'include',
   });
 
   if (!res.ok) {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import {
     LayoutDashboard,
@@ -10,7 +11,9 @@
     ExternalLink,
     Crown,
     Sparkles,
+    Key,
   } from 'lucide-svelte';
+  import { getAccessToken, setAccessToken, clearAccessToken } from '$lib/api';
 
   const navItems = [
     { href: '/', label: 'Tổng Quan KPI', icon: LayoutDashboard },
@@ -19,6 +22,28 @@
     { href: '/videos', label: 'Thư Viện Bài Học Video', icon: Video },
     { href: '/llm-notes', label: 'Import LLM Notes (AI)', icon: Sparkles },
   ];
+
+  let showTokenModal = false;
+  let tokenInput = '';
+  let currentToken = '';
+
+  onMount(() => {
+    currentToken = getAccessToken() || '';
+    tokenInput = currentToken;
+  });
+
+  function handleSaveToken() {
+    setAccessToken(tokenInput);
+    currentToken = tokenInput.trim();
+    showTokenModal = false;
+  }
+
+  function handleClearToken() {
+    clearAccessToken();
+    tokenInput = '';
+    currentToken = '';
+    showTokenModal = false;
+  }
 </script>
 
 <div class="flex h-screen overflow-hidden bg-[#0a0a0f] text-gray-100">
@@ -92,6 +117,16 @@
       </div>
 
       <div class="flex items-center gap-4">
+        <button
+          type="button"
+          on:click={() => (showTokenModal = true)}
+          class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl {currentToken
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+            : 'bg-amber-500/10 border-amber-500/30 text-amber-400'} border text-xs font-semibold transition-colors"
+        >
+          <Key class="size-3.5" />
+          <span>{currentToken ? 'Token Active' : 'Cấu hình Token'}</span>
+        </button>
         <a
           href="http://localhost:3000"
           target="_blank"
@@ -112,3 +147,59 @@
     </main>
   </div>
 </div>
+
+{#if showTokenModal}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="w-full max-w-md rounded-2xl border border-white/10 bg-[#161622] p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <Key class="size-4 text-amber-400" />
+          <span>Cấu hình Bearer Token (JWT)</span>
+        </h3>
+        <button
+          type="button"
+          on:click={() => (showTokenModal = false)}
+          class="text-gray-400 hover:text-white text-sm"
+        >
+          ✕
+        </button>
+      </div>
+      <p class="text-xs text-gray-400 leading-relaxed">
+        Nhập JWT Access Token có quyền ADMIN (lấy từ Client Web App sau khi đăng nhập) để gửi kèm trong Header <code class="text-amber-400">Authorization: Bearer &lt;token&gt;</code> cho mọi yêu cầu API.
+      </p>
+      <div>
+        <textarea
+          bind:value={tokenInput}
+          rows="4"
+          placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+          class="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs font-mono text-white focus:border-amber-500 focus:outline-none"
+        ></textarea>
+      </div>
+      <div class="flex items-center justify-between pt-2">
+        <button
+          type="button"
+          on:click={handleClearToken}
+          class="px-4 py-2 rounded-xl border border-rose-500/30 bg-rose-500/10 text-xs font-semibold text-rose-400 hover:bg-rose-500/20 transition-colors"
+        >
+          Xoá Token
+        </button>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            on:click={() => (showTokenModal = false)}
+            class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            on:click={handleSaveToken}
+            class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-xs font-bold text-black transition-colors"
+          >
+            Lưu Token
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

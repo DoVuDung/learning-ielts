@@ -10,11 +10,10 @@ const BASE_URL = (
 function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const fromStorage = localStorage.getItem('access_token');
-    if (fromStorage) return fromStorage;
-  } catch {}
-  const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+    return localStorage.getItem('access_token');
+  } catch {
+    return null;
+  }
 }
 
 async function request<T>(
@@ -24,7 +23,6 @@ async function request<T>(
   const token = getAccessToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
