@@ -32,9 +32,12 @@ async function request<T>(
 
   if (!res.ok) {
     const raw = await res.text();
-    let errorMessage = `HTTP ${res.status}`;
-    try {
-      if (raw) {
+    let errorMessage = `Lỗi HTTP ${res.status}: ${res.statusText || 'Không tìm thấy API'}`;
+    const isHtml = raw && raw.trim().startsWith('<');
+    if (isHtml) {
+      errorMessage = `Không thể kết nối tới máy chủ Backend (HTTP ${res.status}). Vui lòng đảm bảo Backend đang chạy ở cổng 3001.`;
+    } else if (raw) {
+      try {
         const parsed = JSON.parse(raw);
         if (parsed?.message) {
           errorMessage = Array.isArray(parsed.message)
@@ -43,18 +46,23 @@ async function request<T>(
         } else if (parsed?.error) {
           errorMessage = String(parsed.error);
         } else {
-          errorMessage = raw;
+          errorMessage = raw.slice(0, 150);
         }
+      } catch {
+        errorMessage = raw.slice(0, 150);
       }
-    } catch {
-      errorMessage = raw || errorMessage;
     }
     throw new Error(errorMessage);
   }
 
   // Some endpoints return empty body (204)
   const text = await res.text();
-  return text ? (JSON.parse(text) as T) : ({} as T);
+  if (!text) return {} as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('Phản hồi từ máy chủ không hợp lệ (nhận được HTML thay vì JSON). Vui lòng kiểm tra kết nối Backend.');
+  }
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────

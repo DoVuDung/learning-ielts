@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Target,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { usersApi, type AssessmentResult } from "@/lib/api-client";
 
@@ -234,8 +235,9 @@ export default function AssessmentPage() {
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
-            {error}
+          <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium flex items-center gap-2.5">
+            <AlertCircle className="size-5 shrink-0" />
+            <span className="flex-1">{error}</span>
           </div>
         )}
 

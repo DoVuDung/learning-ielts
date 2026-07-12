@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   Home,
   Headphones,
@@ -88,7 +88,6 @@ export function SideNav({
   onNavigate,
 }: Readonly<{ onNavigate?: () => void }>) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, loading } = useUser();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -103,7 +102,8 @@ export function SideNav({
       try { localStorage.removeItem('access_token'); } catch {}
     } finally {
       setUserMenuOpen(false);
-      router.push('/login');
+      // Full page reload để xóa sạch mọi state trong memory (UserContext, cache...)
+      window.location.href = '/login';
     }
   }
 
