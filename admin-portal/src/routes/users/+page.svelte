@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchAdminUsers, updateUserPremium, updateUserRole } from '$lib/api';
-  import { Search, Crown, Shield, UserCheck, AlertCircle, X, Check } from 'lucide-svelte';
+  import { fetchAdminUsers, updateUserPremium, updateUserRole, deleteAdminUser } from '$lib/api';
+  import { Search, Crown, Shield, UserCheck, AlertCircle, X, Check, Trash2 } from 'lucide-svelte';
 
   let users: any[] = [];
   let searchQuery = '';
@@ -68,6 +68,16 @@
       await loadUsers();
     } catch (err: any) {
       alert(err.message);
+    }
+  }
+
+  async function handleDeleteUser(user: any) {
+    if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xoá vĩnh viễn tài khoản của ${user.name} (${user.email})?`)) return;
+    try {
+      await deleteAdminUser(user.id);
+      await loadUsers();
+    } catch (err: any) {
+      alert('Lỗi xoá tài khoản: ' + err.message);
     }
   }
 </script>
@@ -197,6 +207,13 @@
                       Hủy PRO
                     </button>
                   {/if}
+                  <button
+                    on:click={() => handleDeleteUser(user)}
+                    class="px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-semibold transition-colors"
+                    title="Xoá tài khoản"
+                  >
+                    Xoá TK
+                  </button>
                 </td>
               </tr>
             {/each}
@@ -242,6 +259,7 @@
               bind:value={extendDays}
               class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-amber-500"
             >
+              <option value={7}>Gói 7 ngày (Dùng thử)</option>
               <option value={30}>Gói 30 ngày (1 Tháng)</option>
               <option value={90}>Gói 90 ngày (3 Tháng)</option>
               <option value={365}>Gói 365 ngày (1 Năm)</option>

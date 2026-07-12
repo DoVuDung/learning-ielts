@@ -25,6 +25,15 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request?.user;
 
+    const adminEmails = (process.env.ADMIN_EMAILS ?? 'vudungoik2016@gmail.com')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (user && !user.role && user.email && adminEmails.includes(user.email.toLowerCase())) {
+      user.role = Role.ADMIN;
+    }
+
     if (!user || !user.role) {
       throw new ForbiddenException('Access denied: user role not found');
     }

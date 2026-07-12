@@ -66,7 +66,9 @@
           </div>
         </div>
         <div class="text-3xl font-black text-white">{stats.premiumUsers.toLocaleString('vi-VN')}</div>
-        <p class="text-xs text-amber-400/80 font-semibold">Quyền lợi VIP ACID</p>
+        <p class="text-xs text-amber-400 font-semibold flex items-center gap-1.5">
+          <span>Tỷ lệ chuyển đổi: {stats.totalUsers ? ((stats.premiumUsers / stats.totalUsers) * 100).toFixed(1) : '0'}% PRO</span>
+        </p>
       </div>
 
       <div class="p-6 rounded-2xl bg-[#12121a] border border-white/10 space-y-3">

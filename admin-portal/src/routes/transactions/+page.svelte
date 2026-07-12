@@ -7,6 +7,19 @@
   let loading = true;
   let error = '';
   let approvingId: string | null = null;
+  let filterStatus = 'ALL';
+  let searchQuery = '';
+
+  $: filteredTransactions = transactions.filter((tx) => {
+    if (filterStatus !== 'ALL' && tx.status !== filterStatus) return false;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      tx.orderId?.toLowerCase().includes(q) ||
+      tx.user?.name?.toLowerCase().includes(q) ||
+      tx.user?.email?.toLowerCase().includes(q)
+    );
+  });
 
   async function loadTransactions() {
     loading = true;
@@ -65,6 +78,45 @@
     </button>
   </div>
 
+  <!-- Filter & Search Bar -->
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#12121a] border border-white/10">
+    <div class="flex items-center gap-2">
+      <button
+        on:click={() => (filterStatus = 'ALL')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterStatus === 'ALL'
+          ? 'bg-amber-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        Tất cả
+      </button>
+      <button
+        on:click={() => (filterStatus = 'SUCCESS')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterStatus === 'SUCCESS'
+          ? 'bg-emerald-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        Thành công
+      </button>
+      <button
+        on:click={() => (filterStatus = 'PENDING')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterStatus === 'PENDING'
+          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        Chờ thanh toán
+      </button>
+    </div>
+
+    <div class="relative w-full sm:w-72">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Tìm theo Order ID, Tên, Email..."
+        class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+      />
+    </div>
+  </div>
+
   {#if loading}
     <div class="p-12 text-center text-gray-400">Đang tải danh sách giao dịch...</div>
   {:else if error}
@@ -86,14 +138,14 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5 text-sm">
-          {#if transactions.length === 0}
+          {#if filteredTransactions.length === 0}
             <tr>
               <td colspan="7" class="p-8 text-center text-gray-400">
-                Chưa có đơn hàng thanh toán nào trong hệ thống.
+                Không tìm thấy đơn hàng thanh toán phù hợp bộ lọc.
               </td>
             </tr>
           {:else}
-            {#each transactions as tx}
+            {#each filteredTransactions as tx}
               <tr class="hover:bg-white/[0.02] transition-colors">
                 <td class="p-4 font-mono font-bold text-amber-400">{tx.orderId}</td>
                 <td class="p-4">

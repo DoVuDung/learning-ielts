@@ -90,6 +90,30 @@ describe('WordsService', () => {
     });
   });
 
+  describe('importLlmNotes', () => {
+    it('should import notes from rawText and notes array', async () => {
+      mockPrisma.note.upsert.mockResolvedValue({
+        id: 'note-1',
+        word: 'ubiquitous',
+        cards: [],
+      });
+
+      const result = await service.importLlmNotes('u1', {
+        rawText: '1. Ubiquitous - có mặt khắp nơi',
+        notes: [{ word: '' }, { word: 'ephemeral', definition: 'short-lived' }],
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.importedCount).toBe(2);
+    });
+
+    it('should throw BadRequestException if no valid notes found', async () => {
+      await expect(service.importLlmNotes('u1', { rawText: '   ' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
   describe('remove', () => {
     it('should delete notes by normalized word and user', async () => {
       mockPrisma.note.deleteMany.mockResolvedValue({ count: 1 });

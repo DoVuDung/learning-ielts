@@ -8,6 +8,7 @@ describe('WordsController', () => {
   const mockWordsService = {
     findAll: jest.fn().mockResolvedValue([{ id: 'n1', word: 'ubiquitous' }]),
     save: jest.fn().mockResolvedValue({ id: 'n1', word: 'ubiquitous' }),
+    importLlmNotes: jest.fn().mockResolvedValue({ success: true, importedCount: 1 }),
     remove: jest.fn().mockResolvedValue({ ok: true }),
     review: jest.fn().mockResolvedValue({ id: 'c1', reps: 1 }),
   };
@@ -41,6 +42,13 @@ describe('WordsController', () => {
       id: 'n1',
       word: 'ubiquitous',
     });
+  });
+
+  it('should import llm notes', async () => {
+    const req: any = { user: { sub: 'user1' } };
+    expect(
+      await controller.importLlmNotes(req, { rawText: '1. Ubiquitous - present everywhere' }),
+    ).toEqual({ success: true, importedCount: 1 });
   });
 
   it('should remove a note', async () => {

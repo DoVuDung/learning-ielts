@@ -63,6 +63,26 @@ export class WordsController {
     return this.wordsService.save(req.user.sub, body);
   }
 
+  @Post('import-llm')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Import vocabulary notes from LLM text or structured JSON' })
+  @ApiResponse({ status: 200, description: 'Imported notes count and data' })
+  importLlmNotes(
+    @Req() req: AuthRequest,
+    @Body()
+    body: {
+      rawText?: string;
+      notes?: Array<{
+        word: string;
+        definition?: string;
+        context?: string;
+        tags?: string[];
+      }>;
+    },
+  ) {
+    return this.wordsService.importLlmNotes(req.user.sub, body);
+  }
+
   @Delete()
   @ApiOperation({ summary: 'Delete a saved word and all its cards' })
   @ApiBody({

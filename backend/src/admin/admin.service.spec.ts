@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminService } from './admin.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -14,11 +14,21 @@ describe('AdminService', () => {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
+    },
+    note: {
+      upsert: jest.fn(),
     },
     video: {
       count: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    sentence: {
+      deleteMany: jest.fn(),
     },
     upgradeTransaction: {
       aggregate: jest.fn(),
@@ -66,6 +76,18 @@ describe('AdminService', () => {
         totalRevenue: 5000000,
         recentTransactions: recentTxs,
       });
+    });
+
+    it('handles null revenue sum gracefully', async () => {
+      mockPrisma.user.count.mockResolvedValue(0);
+      mockPrisma.video.count.mockResolvedValue(0);
+      mockPrisma.upgradeTransaction.aggregate.mockResolvedValue({
+        _sum: { amount: null },
+      });
+      mockPrisma.upgradeTransaction.findMany.mockResolvedValue([]);
+
+      const result = await service.getDashboardStats();
+      expect(result.totalRevenue).toBe(0);
     });
   });
 
@@ -132,6 +154,21 @@ describe('AdminService', () => {
         where: { id: 'u-1' },
         data: { isPremium: false, premiumExpiresAt: null },
       });
+    });
+
+    it('extends premium based on current time if premiumExpiresAt is in the past', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        premiumExpiresAt: new Date(Date.now() - 100000),
+      });
+      mockPrisma.user.update.mockResolvedValue({ id: 'u-1' });
+
+      await service.updateUserPremium('u-1', {
+        isPremium: true,
+        extendDays: 30,
+      });
+
+      expect(mockPrisma.user.update).toHaveBeenCalled();
     });
   });
 
@@ -221,6 +258,34 @@ describe('AdminService', () => {
       expect(result.idempotent).toBe(false);
       expect(result.transaction.status).toBe('SUCCESS');
     });
+
+    it('approves transaction when user premiumExpiresAt is null or expired', async () => {
+      const mockTx = {
+        orderId: 'ORDER-2',
+        userId: 'u-2',
+        durationDays: 30,
+        status: 'PENDING',
+      };
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
+        const txPrisma = {
+          upgradeTransaction: {
+            findUnique: jest.fn().mockResolvedValue(mockTx),
+            update: jest.fn().mockResolvedValue({ ...mockTx, status: 'SUCCESS' }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({
+              id: 'u-2',
+              premiumExpiresAt: null,
+            }),
+            update: jest.fn().mockResolvedValue({ id: 'u-2', isPremium: true }),
+          },
+        };
+        return callback(txPrisma);
+      });
+
+      const result = await service.approveTransaction({ orderId: 'ORDER-2' });
+      expect(result.idempotent).toBe(false);
+    });
   });
 
   describe('getVideos & createVideo', () => {
@@ -237,6 +302,86 @@ describe('AdminService', () => {
           level: 'B2',
         }),
       ).resolves.toEqual({ id: 'v-2' });
+    });
+
+    it('updates a video successfully or throws if not found', async () => {
+      mockPrisma.video.findUnique.mockResolvedValueOnce({ id: 'v-1' });
+      mockPrisma.video.update.mockResolvedValue({
+        id: 'v-1',
+        title: 'Updated',
+        category: 'ielts',
+        level: 'C1',
+      });
+
+      await expect(
+        service.updateVideo('v-1', {
+          title: 'Updated',
+          category: 'ielts',
+          level: 'C1',
+        }),
+      ).resolves.toEqual({
+        id: 'v-1',
+        title: 'Updated',
+        category: 'ielts',
+        level: 'C1',
+      });
+
+      mockPrisma.video.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.updateVideo('v-99', { title: 'Updated' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('deletes a video successfully or throws if not found', async () => {
+      mockPrisma.video.findUnique.mockResolvedValueOnce({ id: 'v-1' });
+      mockPrisma.sentence.deleteMany.mockResolvedValue({ count: 5 });
+      mockPrisma.video.delete.mockResolvedValue({ id: 'v-1' });
+
+      await expect(service.deleteVideo('v-1')).resolves.toEqual({
+        ok: true,
+        message: 'Video v-1 deleted successfully',
+      });
+
+      mockPrisma.video.findUnique.mockResolvedValueOnce(null);
+      await expect(service.deleteVideo('v-99')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('deletes a user successfully or throws if not found', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: 'u-1' });
+      mockPrisma.user.delete.mockResolvedValue({ id: 'u-1' });
+
+      await expect(service.deleteUser('u-1')).resolves.toEqual({
+        ok: true,
+        message: 'User u-1 deleted successfully',
+      });
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      await expect(service.deleteUser('u-99')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('imports LLM notes for user successfully or throws if invalid', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: 'u-1' });
+      mockPrisma.note.upsert.mockResolvedValueOnce({
+        id: 'n-1',
+        word: 'ubiquitous',
+        cards: [],
+      });
+
+      const res = await service.importLlmNotesForUser('u-1', {
+        rawText: '1. Ubiquitous - everywhere',
+        notes: [{ word: '  ' }, { word: 'ephemeral', definition: 'short-lived' }],
+      });
+      expect(res.success).toBe(true);
+      expect(res.importedCount).toBe(2);
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.importLlmNotesForUser('u-99', { rawText: '1. word' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

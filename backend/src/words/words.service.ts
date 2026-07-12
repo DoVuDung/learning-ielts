@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { schedule, type Rating } from './fsrs';
+import { parseLlmNoteText } from './llm-note.parser';
 
 @Injectable()
 export class WordsService {
@@ -43,6 +44,66 @@ export class WordsService {
       },
       include: { cards: true },
     });
+  }
+
+  async importLlmNotes(
+    userId: string,
+    payload: {
+      rawText?: string;
+      notes?: Array<{
+        word: string;
+        definition?: string;
+        context?: string;
+        tags?: string[];
+      }>;
+    },
+  ) {
+    let items = payload.notes ?? [];
+    if (payload.rawText && payload.rawText.trim()) {
+      const parsed = parseLlmNoteText(payload.rawText);
+      items = [...items, ...parsed];
+    }
+
+    if (!items || items.length === 0) {
+      throw new BadRequestException('No valid notes found to import');
+    }
+
+    const savedNotes: any[] = [];
+    for (const item of items) {
+      if (!item.word || !item.word.trim()) continue;
+      const normalized = item.word.toLowerCase().trim();
+
+      const note = await this.prisma.note.upsert({
+        where: { userId_word: { userId, word: normalized } },
+        update: {
+          ...(item.definition && { definition: item.definition }),
+          ...(item.context && { context: item.context }),
+          ...(item.tags && { tags: item.tags }),
+        },
+        create: {
+          userId,
+          word: normalized,
+          definition: item.definition,
+          context: item.context,
+          tags: item.tags ?? ['LLM Note'],
+          cards: {
+            create: [
+              { userId, template: 'WORD_TO_MEANING' },
+              { userId, template: 'MEANING_TO_WORD' },
+              { userId, template: 'LISTENING' },
+            ],
+          },
+        },
+        include: { cards: true },
+      });
+      savedNotes.push(note);
+    }
+
+    return {
+      success: true,
+      importedCount: savedNotes.length,
+      notes: savedNotes,
+    };
   }
 
   async remove(userId: string, word: string) {

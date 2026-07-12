@@ -15,18 +15,41 @@ async function bootstrap() {
   // Lớp 2: Cookie Parser (để đọc JWT HttpOnly cookie)
   app.use(cookieParser());
 
-  // Lớp 3: Strict CORS
-  const rawFrontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-  const allowedOrigins = rawFrontendUrl
-    .split(',')
-    .map((origin) => origin.trim().replace(/\/+$/, ''))
-    .filter(Boolean);
+  // Lớp 3: Flexible & Secure CORS (Cho phép Frontend web + Admin portal)
+  const rawOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.ADMIN_URL,
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:4173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+  ]
+    .filter(Boolean)
+    .join(',');
+
+  const allowedOrigins = new Set(
+    rawOrigins
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/+$/, ''))
+      .filter(Boolean),
+  );
 
   app.enableCors({
-    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.has(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1):[0-9]+$/.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   });
 
   // Lớp 4: Global Input Validation & Whitelisting (chống Mass Assignment injection)

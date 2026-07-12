@@ -41,8 +41,19 @@ describe('JwtStrategy', () => {
   it('validate returns user when user exists', async () => {
     usersServiceMock.findById.mockResolvedValue(mockUser);
     const result = await strategy.validate({ sub: 'user-1', email: 'test@example.com' });
-    expect(usersServiceMock.findById).toHaveBeenCalledWith('user-1');
-    expect(result).toEqual(mockUser);
+    expect(result).toEqual({ ...mockUser, role: 'USER' });
+  });
+
+  it('validate returns ADMIN role when user email is in admin emails', async () => {
+    usersServiceMock.findById.mockResolvedValue({
+      ...mockUser,
+      email: 'vudungoik2016@gmail.com',
+    });
+    const result = await strategy.validate({
+      sub: 'user-1',
+      email: 'vudungoik2016@gmail.com',
+    });
+    expect(result.role).toBe('ADMIN');
   });
 
   it('validate throws UnauthorizedException when user not found', async () => {

@@ -51,3 +51,17 @@ export class AdminCreateVideoDto {
   @IsOptional()
   channelName?: string;
 }
+
+export class AdminUpdateVideoDto {
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsString()
+  @IsOptional()
+  level?: string;
+}

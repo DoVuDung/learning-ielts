@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  Delete,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -16,6 +17,7 @@ import {
   UpdateUserRoleDto,
   ManualApproveTransactionDto,
   AdminCreateVideoDto,
+  AdminUpdateVideoDto,
 } from './dto/admin.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -73,5 +75,40 @@ export class AdminController {
   @Post('videos')
   async createVideo(@Body() dto: AdminCreateVideoDto) {
     return this.adminService.createVideo(dto);
+  }
+
+  @Patch('videos/:id')
+  async updateVideo(
+    @Param('id') id: string,
+    @Body() dto: AdminUpdateVideoDto,
+  ) {
+    return this.adminService.updateVideo(id, dto);
+  }
+
+  @Delete('videos/:id')
+  async deleteVideo(@Param('id') id: string) {
+    return this.adminService.deleteVideo(id);
+  }
+
+  @Delete('users/:id')
+  async deleteUser(@Param('id') id: string) {
+    return this.adminService.deleteUser(id);
+  }
+
+  @Post('users/:userId/notes/import-llm')
+  async importLlmNotesForUser(
+    @Param('userId') userId: string,
+    @Body()
+    body: {
+      rawText?: string;
+      notes?: Array<{
+        word: string;
+        definition?: string;
+        context?: string;
+        tags?: string[];
+      }>;
+    },
+  ) {
+    return this.adminService.importLlmNotesForUser(userId, body);
   }
 }

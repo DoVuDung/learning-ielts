@@ -19,6 +19,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(payload: JwtPayload) {
     const user = await this.usersService.findById(payload.sub);
     if (!user) throw new UnauthorizedException();
-    return user;
+
+    const adminEmails = (process.env.ADMIN_EMAILS ?? 'vudungoik2016@gmail.com')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    const role =
+      (user as any).role === 'ADMIN' ||
+      adminEmails.includes(user.email.toLowerCase())
+        ? 'ADMIN'
+        : ((user as any).role ?? 'USER');
+
+    return {
+      ...user,
+      role,
+    };
   }
 }

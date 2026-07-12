@@ -17,6 +17,7 @@
     { href: '/users', label: 'Quản Lý Học Viên & CSKH', icon: Users },
     { href: '/transactions', label: 'Giao Dịch VietQR / ACID', icon: Receipt },
     { href: '/videos', label: 'Thư Viện Bài Học Video', icon: Video },
+    { href: '/llm-notes', label: 'Import LLM Notes (AI)', icon: Sparkles },
   ];
 </script>
 

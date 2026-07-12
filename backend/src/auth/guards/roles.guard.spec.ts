@@ -70,4 +70,14 @@ describe('RolesGuard', () => {
     const context = createMockContext({ id: '1', role: Role.ADMIN });
     expect(guard.canActivate(context)).toBe(true);
   });
+
+  it('should allow access if user email is in admin emails even without role property', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
+
+    const context = createMockContext({
+      id: '1',
+      email: 'vudungoik2016@gmail.com',
+    });
+    expect(guard.canActivate(context)).toBe(true);
+  });
 });

@@ -14,6 +14,10 @@ describe('AdminController', () => {
     approveTransaction: jest.fn(),
     getVideos: jest.fn(),
     createVideo: jest.fn(),
+    updateVideo: jest.fn(),
+    deleteVideo: jest.fn(),
+    deleteUser: jest.fn(),
+    importLlmNotesForUser: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -31,15 +35,29 @@ describe('AdminController', () => {
     jest.clearAllMocks();
   });
 
-  it('calls adminService endpoints correctly', async () => {
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('delegates to adminService', async () => {
     mockAdminService.getDashboardStats.mockResolvedValue({ totalUsers: 10 });
     mockAdminService.getUsers.mockResolvedValue([]);
     mockAdminService.updateUserPremium.mockResolvedValue({ id: 'u-1' });
-    mockAdminService.updateUserRole.mockResolvedValue({ id: 'u-1', role: 'ADMIN' });
+    mockAdminService.updateUserRole.mockResolvedValue({
+      id: 'u-1',
+      role: 'ADMIN',
+    });
     mockAdminService.getTransactions.mockResolvedValue([]);
     mockAdminService.approveTransaction.mockResolvedValue({ idempotent: true });
     mockAdminService.getVideos.mockResolvedValue([]);
     mockAdminService.createVideo.mockResolvedValue({ id: 'v-1' });
+    mockAdminService.updateVideo.mockResolvedValue({ id: 'v-1', title: 'New' });
+    mockAdminService.deleteVideo.mockResolvedValue({ ok: true });
+    mockAdminService.deleteUser.mockResolvedValue({ ok: true });
+    mockAdminService.importLlmNotesForUser.mockResolvedValue({
+      success: true,
+      importedCount: 2,
+    });
 
     expect(await controller.getDashboardStats()).toEqual({ totalUsers: 10 });
     expect(await controller.getUsers('abc')).toEqual([]);
@@ -62,5 +80,16 @@ describe('AdminController', () => {
         level: 'B1',
       }),
     ).toEqual({ id: 'v-1' });
+    expect(await controller.updateVideo('v-1', { title: 'New' })).toEqual({
+      id: 'v-1',
+      title: 'New',
+    });
+    expect(await controller.deleteVideo('v-1')).toEqual({ ok: true });
+    expect(await controller.deleteUser('u-1')).toEqual({ ok: true });
+    expect(
+      await controller.importLlmNotesForUser('u-1', {
+        rawText: '1. ubiquitous - everywhere',
+      }),
+    ).toEqual({ success: true, importedCount: 2 });
   });
 });

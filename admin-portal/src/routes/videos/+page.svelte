@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { fetchAdminVideos, createAdminVideo } from '$lib/api';
-  import { Video, Plus, Youtube, BookOpen, Layers, X } from 'lucide-svelte';
+  import { fetchAdminVideos, createAdminVideo, updateAdminVideo, deleteAdminVideo } from '$lib/api';
+  import { Video, Plus, Youtube, BookOpen, Layers, X, Edit3, Trash2 } from 'lucide-svelte';
 
   let videos: any[] = [];
   let loading = true;
@@ -52,6 +52,63 @@
       formLoading = false;
     }
   }
+
+  // Filter & Search
+  let filterCat = 'ALL';
+  let searchQuery = '';
+
+  $: filteredVideos = videos.filter((vid) => {
+    if (filterCat !== 'ALL' && vid.category !== filterCat) return false;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      vid.title?.toLowerCase().includes(q) ||
+      vid.youtubeId?.toLowerCase().includes(q)
+    );
+  });
+
+  // Edit Video Modal
+  let editingVideo: any = null;
+  let editTitle = '';
+  let editCategory = '';
+  let editLevel = '';
+  let editLoading = false;
+
+  function handleOpenEdit(vid: any) {
+    editingVideo = vid;
+    editTitle = vid.title;
+    editCategory = vid.category;
+    editLevel = vid.level;
+  }
+
+  async function handleUpdateVideo(e: Event) {
+    e.preventDefault();
+    if (!editingVideo) return;
+    editLoading = true;
+    try {
+      await updateAdminVideo(editingVideo.id, {
+        title: editTitle,
+        category: editCategory,
+        level: editLevel,
+      });
+      editingVideo = null;
+      await loadVideos();
+    } catch (err: any) {
+      alert('Lỗi cập nhật video: ' + err.message);
+    } finally {
+      editLoading = false;
+    }
+  }
+
+  async function handleDeleteVideo(vid: any) {
+    if (!confirm(`Bạn có chắc chắn muốn xoá video "${vid.title}" cùng toàn bộ câu subtitle của video này?`)) return;
+    try {
+      await deleteAdminVideo(vid.id);
+      await loadVideos();
+    } catch (err: any) {
+      alert('Lỗi xoá video: ' + err.message);
+    }
+  }
 </script>
 
 <div class="space-y-6">
@@ -72,6 +129,53 @@
     </button>
   </div>
 
+  <!-- Filter & Search Bar -->
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#12121a] border border-white/10">
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        on:click={() => (filterCat = 'ALL')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterCat === 'ALL'
+          ? 'bg-amber-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        Tất cả
+      </button>
+      <button
+        on:click={() => (filterCat = 'ielts')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterCat === 'ielts'
+          ? 'bg-amber-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        IELTS
+      </button>
+      <button
+        on:click={() => (filterCat = 'ted')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterCat === 'ted'
+          ? 'bg-amber-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        TED Talks
+      </button>
+      <button
+        on:click={() => (filterCat = 'news')}
+        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all {filterCat === 'news'
+          ? 'bg-amber-500 text-black shadow-md'
+          : 'bg-white/5 text-gray-400 hover:text-white'}"
+      >
+        News
+      </button>
+    </div>
+
+    <div class="relative w-full sm:w-72">
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Tìm theo Tiêu đề hoặc YouTube ID..."
+        class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
+      />
+    </div>
+  </div>
+
   {#if loading}
     <div class="p-12 text-center text-gray-400">Đang tải thư viện bài học...</div>
   {:else if error}
@@ -80,12 +184,12 @@
     </div>
   {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {#if videos.length === 0}
+      {#if filteredVideos.length === 0}
         <div class="col-span-3 p-12 text-center text-gray-400 rounded-2xl bg-[#12121a] border border-white/10">
-          Chưa có video bài học nào trong hệ thống. Hãy thêm video đầu tiên!
+          Không tìm thấy video bài học nào phù hợp bộ lọc.
         </div>
       {:else}
-        {#each videos as vid}
+        {#each filteredVideos as vid}
           <div
             class="rounded-2xl bg-[#12121a] border border-white/10 overflow-hidden flex flex-col justify-between hover:border-amber-500/30 transition-all group"
           >
@@ -131,11 +235,25 @@
                 class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
               >
                 <Youtube class="size-3.5 text-red-500" />
-                <span>Xem trên YouTube</span>
+                <span>Xem</span>
               </a>
-              <span class="text-[11px] text-gray-500">
-                {new Date(vid.createdAt).toLocaleDateString('vi-VN')}
-              </span>
+
+              <div class="flex items-center gap-2">
+                <button
+                  on:click={() => handleOpenEdit(vid)}
+                  class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 transition-colors"
+                  title="Sửa video"
+                >
+                  Sửa
+                </button>
+                <button
+                  on:click={() => handleDeleteVideo(vid)}
+                  class="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs text-red-400 transition-colors"
+                  title="Xoá video"
+                >
+                  Xoá
+                </button>
+              </div>
             </div>
           </div>
         {/each}
@@ -229,20 +347,104 @@
             </div>
           {/if}
 
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                on:click={() => (showModal = false)}
+                class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={formLoading}
+                class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 font-bold text-black text-xs transition-colors"
+              >
+                {formLoading ? 'Đang thêm...' : 'Thêm Vào Thư Viện'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+  {/if}
+
+  <!-- Modal Edit Video -->
+  {#if editingVideo}
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+    >
+      <div
+        class="w-full max-w-md rounded-2xl bg-[#12121a] border border-white/15 p-6 shadow-2xl space-y-6"
+      >
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+          <h3 class="font-bold text-lg text-white">Cập Nhật Bài Học Video</h3>
+          <button
+            on:click={() => (editingVideo = null)}
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <X class="size-5" />
+          </button>
+        </div>
+
+        <form on:submit={handleUpdateVideo} class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">
+              Tiêu Đề Video
+            </label>
+            <input
+              type="text"
+              bind:value={editTitle}
+              class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+              required
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">
+                Chủ Đề (Category)
+              </label>
+              <select
+                bind:value={editCategory}
+                class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="ielts">IELTS</option>
+                <option value="ted">TED Talks</option>
+                <option value="news">News</option>
+                <option value="story">Story</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-400 uppercase mb-2">
+                Cấp Độ (Level)
+              </label>
+              <select
+                bind:value={editLevel}
+                class="w-full bg-[#0a0a0f] border border-white/15 rounded-xl p-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
+              >
+                <option value="A2">A2 (Cơ bản)</option>
+                <option value="B1">B1 (Trung cấp)</option>
+                <option value="B2">B2 (Khá)</option>
+                <option value="C1">C1 (Nâng cao)</option>
+              </select>
+            </div>
+          </div>
+
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
               type="button"
-              on:click={() => (showModal = false)}
+              on:click={() => (editingVideo = null)}
               class="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
-              disabled={formLoading}
+              disabled={editLoading}
               class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 font-bold text-black text-xs transition-colors"
             >
-              {formLoading ? 'Đang thêm...' : 'Thêm Vào Thư Viện'}
+              {editLoading ? 'Đang lưu...' : 'Lưu Thay Đổi'}
             </button>
           </div>
         </form>
