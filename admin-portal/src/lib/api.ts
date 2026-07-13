@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env?.VITE_API_URL || 'http://localhost:3001') + '/admin';
+const API_BASE = ((import.meta as any).env?.VITE_API_URL || 'http://localhost:3001') + '/admin';
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
