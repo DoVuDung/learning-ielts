@@ -1,4 +1,5 @@
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { RedirectIfAuthenticated } from "@/components/redirect-if-authenticated";
 import { Separator } from "@/components/ui/separator";
 
 export const metadata = {
@@ -8,6 +9,7 @@ export const metadata = {
 export default function LoginPage() {
   return (
     <div className="w-full flex flex-col gap-8">
+      <RedirectIfAuthenticated />
       {/* Logo */}
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center justify-center size-12 rounded-2xl bg-primary shadow-lg shadow-primary/30">

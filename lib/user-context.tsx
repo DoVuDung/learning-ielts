@@ -48,8 +48,11 @@ export function UserProvider({
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      console.log('[UserProvider] load() called, token present:', Boolean(token), token ? token.substring(0, 20) + '...' : 'null');
       try {
         const profile = await authApi.me();
+        console.log('[UserProvider] me() success:', profile?.id);
         if (!cancelled) {
           if (profile && profile.id) {
             setUser(profile);
@@ -57,7 +60,8 @@ export function UserProvider({
             setUser(null);
           }
         }
-      } catch {
+      } catch (e) {
+        console.error('[UserProvider] me() failed:', e);
         if (!cancelled) {
           setUser(null);
         }

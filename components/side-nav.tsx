@@ -99,11 +99,13 @@ export function SideNav({
       await authApi.logout();
     } catch {
       // Dù API lỗi vẫn xóa token và redirect
-      try { localStorage.removeItem('access_token'); } catch {}
     } finally {
       setUserMenuOpen(false);
-      // Full page reload để xóa sạch mọi state trong memory (UserContext, cache...)
-      window.location.href = '/login';
+      try {
+        localStorage.removeItem("access_token");
+        sessionStorage.clear();
+      } catch {}
+      window.location.replace("/login");
     }
   }
 

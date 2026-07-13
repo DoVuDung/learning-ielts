@@ -10,7 +10,17 @@ const BASE_URL = (
 function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return localStorage.getItem('access_token');
+    let token = localStorage.getItem('access_token');
+    if (!token) {
+      const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]*)/);
+      if (match) {
+        token = decodeURIComponent(match[1]);
+        try {
+          localStorage.setItem('access_token', token);
+        } catch {}
+      }
+    }
+    return token;
   } catch {
     return null;
   }
@@ -21,6 +31,7 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getAccessToken();
+  console.log(`[api-client] ${options.method ?? 'GET'} ${path} | token: ${token ? token.substring(0, 20) + '...' : 'NULL'}`);
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -31,6 +42,16 @@ async function request<T>(
   });
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('access_token');
+        sessionStorage.clear();
+      } catch {}
+      if (path !== '/auth/me' && path !== '/auth/logout') {
+        window.location.replace('/login');
+      }
+    }
+
     const raw = await res.text();
     let errorMessage = `Lỗi HTTP ${res.status}: ${res.statusText || 'Không tìm thấy API'}`;
     const isHtml = raw && raw.trim().startsWith('<');
@@ -85,6 +106,7 @@ export const authApi = {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('access_token');
+          sessionStorage.clear();
         } catch {}
       }
     }
