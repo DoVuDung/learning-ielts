@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 const EXPIRY = "7d";
+const COOKIE = "access_token";
 
 export type JwtPayload = { sub: string; email: string };
 

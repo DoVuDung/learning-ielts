@@ -31,7 +31,6 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getAccessToken();
-  console.log(`[api-client] ${options.method ?? 'GET'} ${path} | token: ${token ? token.substring(0, 20) + '...' : 'NULL'}`);
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {

@@ -28,6 +28,7 @@ if git diff --quiet "$PREV_SHA" "$CURR_SHA" -- \
   postcss.config.mjs \
   tailwind.config.ts \
   tsconfig.json \
+  proxy.ts \
   vercel.json; then
   echo "🛑 No Frontend files modified. SKIPPING Vercel build (Exit code 0)."
   exit 0
