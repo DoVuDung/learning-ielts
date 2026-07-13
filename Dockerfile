@@ -15,6 +15,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build-time env vars for Next.js frontend
 ARG NEXT_PUBLIC_API_URL=http://localhost:3001
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 RUN npm run build
 
