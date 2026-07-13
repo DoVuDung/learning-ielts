@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "dev:backend": "cd backend && npm run start:dev",
     "dev:admin": "cd admin-portal && npm run dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "build:backend": "cd backend && npm run build",
     "build:all": "npm run build:backend && npm run build",
     "start": "next start",
