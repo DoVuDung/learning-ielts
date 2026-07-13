@@ -5,30 +5,35 @@ import { Trophy, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { rankUsers } from "@/lib/leaderboard";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 60; // refresh leaderboard every minute
 
 async function getRanked() {
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      avatarUrl: true,
-      progress: { select: { sentencesDone: true } },
-      cards: { select: { reps: true } },
-      notes: { select: { id: true } },
-    },
-  });
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        progress: { select: { sentencesDone: true } },
+        cards: { select: { reps: true } },
+        notes: { select: { id: true } },
+      },
+    });
 
-  return rankUsers(
-    users.map((u) => ({
-      id: u.id,
-      name: u.name,
-      avatarUrl: u.avatarUrl,
-      sentencesDone: u.progress.reduce((s, p) => s + p.sentencesDone, 0),
-      reviewsDone: u.cards.reduce((s, c) => s + c.reps, 0),
-      wordsSaved: u.notes.length,
-    })),
-  );
+    return rankUsers(
+      users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        sentencesDone: u.progress.reduce((s, p) => s + p.sentencesDone, 0),
+        reviewsDone: u.cards.reduce((s, c) => s + c.reps, 0),
+        wordsSaved: u.notes.length,
+      })),
+    );
+  } catch {
+    return [];
+  }
 }
 
 const RANK_STYLES = [
