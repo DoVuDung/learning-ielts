@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
 import { AppModule } from '../src/app.module';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
+
+const express = require('express');
+const cookieParser = require('cookie-parser');
 
 const expressApp = express();
 let cachedApp: any;
@@ -65,6 +66,39 @@ async function bootstrap() {
     );
 
     app.useGlobalFilters(new HttpExceptionFilter());
+
+    // ─── Swagger / OpenAPI ───────────────────────────────────────────────────
+    const { DocumentBuilder, SwaggerModule } = require('@nestjs/swagger');
+    const config = new DocumentBuilder()
+      .setTitle('BapEnglish API')
+      .setDescription(
+        'REST API for the BapEnglish IELTS learning platform.\n\n' +
+        '**Auth:** All protected routes require a Bearer token in the `Authorization` header (`Authorization: Bearer <token>`). ' +
+        'To test in Swagger UI, click Authorize and enter your JWT token.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Enter JWT token',
+      })
+      .addTag('auth', 'Google OAuth 2.0 & session management')
+      .addTag('videos', 'YouTube video import & management')
+      .addTag('transcript', 'YouTube subtitle fetching')
+      .addTag('progress', 'Dictation progress tracking')
+      .addTag('words', 'Vocabulary notes & FSRS-5 card review')
+      .addTag('speaking', 'AI speaking practice (Anthropic streaming)')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        withCredentials: true,
+      },
+      customSiteTitle: 'BapEnglish API Docs',
+    });
 
     await app.init();
     cachedApp = app;
