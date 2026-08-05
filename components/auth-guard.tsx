@@ -27,6 +27,11 @@ export function AuthGuard({ children }: Readonly<{ children: React.ReactNode }>)
   const { user, loading } = useUser();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -54,13 +59,8 @@ export function AuthGuard({ children }: Readonly<{ children: React.ReactNode }>)
 
   const hasToken = Boolean(getStoredToken());
 
-  // Nếu không có token hoặc sau khi kiểm tra không có user hợp lệ -> không cho dùng bất kỳ chức năng nào của hệ thống
-  if (!hasToken || (!loading && !user)) {
-    return null;
-  }
-
-  // Đang kiểm tra token / phiên đăng nhập -> hiển thị màn hình chờ để ngăn chặn sử dụng hệ thống
-  if (loading || checking) {
+  // Wait for client-side hydration or token/user checking
+  if (!mounted || loading || checking) {
     return (
       <div className="flex items-center justify-center h-screen w-screen bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -91,6 +91,11 @@ export function AuthGuard({ children }: Readonly<{ children: React.ReactNode }>)
         </div>
       </div>
     );
+  }
+
+  // Nếu không có token hoặc sau khi kiểm tra không có user hợp lệ -> không cho dùng bất kỳ chức năng nào của hệ thống
+  if (!hasToken || (!loading && !user)) {
+    return null;
   }
 
   return <>{children}</>;
