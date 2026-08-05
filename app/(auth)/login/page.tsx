@@ -1,6 +1,8 @@
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { RedirectIfAuthenticated } from "@/components/redirect-if-authenticated";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Đăng nhập – BapEnglish",
@@ -34,9 +36,23 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3">
           <Separator className="flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">Chỉ hỗ trợ Google</span>
+          <span className="text-xs text-muted-foreground">Hoặc đăng nhập bằng tài khoản</span>
           <Separator className="flex-1 bg-border" />
         </div>
+
+        <form className="flex flex-col gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Email / Username</label>
+            <Input type="email" placeholder="Nhập email của bạn" required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Mật khẩu</label>
+            <Input type="password" placeholder="Nhập mật khẩu" required />
+          </div>
+          <Button type="submit" className="w-full mt-2">
+            Đăng nhập
+          </Button>
+        </form>
 
         <p className="text-xs text-muted-foreground text-center leading-relaxed">
           Bằng cách đăng nhập, bạn đồng ý với{" "}

@@ -34,6 +34,25 @@ export class UsersService {
     return this.prisma.user.create({ data: dto });
   }
 
+  async createAccountWithEmail(email: string): Promise<User> {
+    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return existingUser;
+    }
+
+    const name = email.split('@')[0];
+    // Generate a placeholder googleId since the schema requires it
+    const googleId = `provisioned-${email}-${Date.now()}`;
+
+    return this.prisma.user.create({
+      data: {
+        email,
+        name,
+        googleId,
+      },
+    });
+  }
+
   async update(id: string, data: Partial<CreateUserDto>): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
   }
