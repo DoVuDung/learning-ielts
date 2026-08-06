@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
+  "env": {
+    "NODE_OPTIONS": "--no-deprecation"
+  },
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--no-deprecation"
+    }
+  },
   "ignoreCommand": "bash scripts/vercel-ignore-step.sh",
   "experimentalServices": {
     "frontend": {
