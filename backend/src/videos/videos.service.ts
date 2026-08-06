@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateVideoDto } from './dto/create-video.dto';
-import { YoutubeTranscript } from 'youtube-transcript';
+import { YoutubeTranscript, TranscriptConfig } from 'youtube-transcript';
+import fetch from 'node-fetch';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export interface TranscriptItem {
   text: string;
@@ -135,9 +137,16 @@ export class VideosService {
       const langPriority = ['en-GB', 'en-US', 'en'];
       let items: TranscriptItem[] | null = null;
 
+      const fetchOptions: TranscriptConfig = {};
+      if (process.env.YOUTUBE_PROXY_URL) {
+        const proxyAgent = new HttpsProxyAgent(process.env.YOUTUBE_PROXY_URL);
+        // @ts-ignore: custom fetch type compatibility
+        fetchOptions.fetch = (url: any, options: any) => fetch(url, { ...options, agent: proxyAgent });
+      }
+
       for (const lang of langPriority) {
         try {
-          const raw = await YoutubeTranscript.fetchTranscript(youtubeId, { lang });
+          const raw = await YoutubeTranscript.fetchTranscript(youtubeId, { lang, ...fetchOptions });
           if (raw && raw.length > 0) {
             items = raw.map((r) => ({
               text: r.text,
@@ -153,7 +162,7 @@ export class VideosService {
 
       // Last resort: fetch without specifying a language
       if (!items) {
-        const raw = await YoutubeTranscript.fetchTranscript(youtubeId);
+        const raw = await YoutubeTranscript.fetchTranscript(youtubeId, fetchOptions);
         if (raw && raw.length > 0) {
           items = raw.map((r) => ({
             text: r.text,
