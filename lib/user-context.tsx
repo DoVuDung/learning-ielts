@@ -9,6 +9,7 @@ export interface UserProfile {
   name: string;
   avatarUrl: string | null;
   isPremium: boolean;
+  role?: string;
 }
 
 export interface UserContextValue {

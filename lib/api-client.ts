@@ -96,7 +96,7 @@ export const authApi = {
       : `${BASE_URL}/auth/google`;
   },
 
-  me: () => request<{ id: string; email: string; name: string; avatarUrl: string | null; isPremium: boolean }>('/auth/me'),
+  me: () => request<{ id: string; email: string; name: string; avatarUrl: string | null; isPremium: boolean; role?: string }>('/auth/me'),
 
   logout: async () => {
     try {
