@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { VideosService } from './videos.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 global.fetch = jest.fn();
+jest.mock('youtube-transcript');
 
 describe('VideosService', () => {
   let service: VideosService;
@@ -99,44 +101,20 @@ describe('VideosService', () => {
       expect(res).toEqual({ id: 'existing-id' });
     });
 
-    it('should import video with sentences and parse HTML/XML transcript', async () => {
+    it('should import video with sentences using YoutubeTranscript', async () => {
       mockPrisma.video.findFirst.mockResolvedValue(null);
 
-      // 1) fetch oembed
-      // 2) fetch youtube watch page html
-      // 3) fetch caption track xml
-      const oembedRes = {
+      // Mock oembed for metadata
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ title: 'Test YouTube Title' }),
-      };
+      });
 
-      const html = `ytInitialPlayerResponse = ${JSON.stringify({
-        captions: {
-          playerCaptionsTracklistRenderer: {
-            captionTracks: [
-              { languageCode: 'en', baseUrl: 'https://captions.example.com/en' },
-            ],
-          },
-        },
-      })};`;
-      const watchPageRes = {
-        ok: true,
-        text: async () => html,
-      };
-
-      const xml = `<transcript>
-        <p t="0" d="2000">Hello world.</p>
-        <p t="2000" d="3000">This is sentence two</p>
-      </transcript>`;
-      const captionRes = {
-        ok: true,
-        text: async () => xml,
-      };
-
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce(oembedRes)
-        .mockResolvedValueOnce(watchPageRes)
-        .mockResolvedValueOnce(captionRes);
+      // Mock YoutubeTranscript for transcript
+      (YoutubeTranscript.fetchTranscript as jest.Mock).mockResolvedValueOnce([
+        { text: 'Hello world.', offset: 0, duration: 2000 },
+        { text: 'This is sentence two', offset: 2000, duration: 3000 },
+      ]);
 
       mockPrisma.video.create.mockResolvedValue({ id: 'new-v1', title: 'Test YouTube Title' });
 
@@ -152,9 +130,13 @@ describe('VideosService', () => {
     it('should throw UnprocessableEntityException if no transcript available', async () => {
       mockPrisma.video.findFirst.mockResolvedValue(null);
 
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({ ok: false }) // oembed fails -> falls back to default title
-        .mockResolvedValueOnce({ ok: false }); // watch page fails -> no caption tracks
+      // oembed fails → default title
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false });
+
+      // All YoutubeTranscript.fetchTranscript calls throw
+      (YoutubeTranscript.fetchTranscript as jest.Mock).mockRejectedValue(
+        new Error('No transcript'),
+      );
 
       await expect(
         service.importVideo({ url: 'https://youtube.com/shorts/abc12345678' }, 'u1'),
@@ -170,41 +152,46 @@ describe('VideosService', () => {
       expect(res).toEqual({ id: 'existing-embed' });
     });
 
-    it('should handle malformed JSON player response HTML', async () => {
+    it('should fall back to en-US if en-GB not available', async () => {
       mockPrisma.video.findFirst.mockResolvedValue(null);
 
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ title: 'Title' }) })
-        .mockResolvedValueOnce({
-          ok: true,
-          text: async () => 'ytInitialPlayerResponse = { malformed json };',
-        });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ title: 'Title' }),
+      });
 
-      await expect(
-        service.importVideo({ url: 'https://youtu.be/malformed123' }, 'u1'),
-      ).rejects.toThrow(UnprocessableEntityException);
+      // en-GB throws, en-US succeeds
+      (YoutubeTranscript.fetchTranscript as jest.Mock)
+        .mockRejectedValueOnce(new Error('lang not available'))
+        .mockResolvedValueOnce([
+          { text: 'Hello from en-US.', offset: 0, duration: 1500 },
+        ]);
+
+      mockPrisma.video.create.mockResolvedValue({ id: 'en-us-video' });
+
+      const res = await service.importVideo(
+        { url: 'https://www.youtube.com/watch?v=enUS1234567' },
+        'u1',
+      );
+      expect(res).toEqual({ id: 'en-us-video' });
     });
 
-    it('should fallback to non-en caption track if en not found', async () => {
+    it('should fall back to language-agnostic fetch if all lang attempts fail', async () => {
       mockPrisma.video.findFirst.mockResolvedValue(null);
 
-      const html = `ytInitialPlayerResponse = ${JSON.stringify({
-        captions: {
-          playerCaptionsTracklistRenderer: {
-            captionTracks: [
-              { languageCode: 'vi', baseUrl: 'https://captions.example.com/vi' },
-            ],
-          },
-        },
-      })};`;
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ title: 'Title' }),
+      });
 
-      (global.fetch as jest.Mock)
-        .mockResolvedValueOnce({ ok: true, json: async () => ({ title: 'Title' }) })
-        .mockResolvedValueOnce({ ok: true, text: async () => html })
-        .mockResolvedValueOnce({
-          ok: true,
-          text: async () => '<p t="0" d="1000">Xin chao</p>',
-        });
+      // en-GB, en-US, en all throw; last-resort fallback succeeds
+      (YoutubeTranscript.fetchTranscript as jest.Mock)
+        .mockRejectedValueOnce(new Error('no en-GB'))
+        .mockRejectedValueOnce(new Error('no en-US'))
+        .mockRejectedValueOnce(new Error('no en'))
+        .mockResolvedValueOnce([
+          { text: 'Xin chao.', offset: 0, duration: 1000 },
+        ]);
 
       mockPrisma.video.create.mockResolvedValue({ id: 'vi-video' });
 

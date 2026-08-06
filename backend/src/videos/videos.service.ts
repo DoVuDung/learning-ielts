@@ -1,17 +1,13 @@
 import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateVideoDto } from './dto/create-video.dto';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 export interface TranscriptItem {
   text: string;
   offset: number;
   duration: number;
 }
-
-export type CaptionTrack = { languageCode: string; baseUrl: string };
-
-const BROWSER_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 @Injectable()
 export class VideosService {
@@ -133,91 +129,44 @@ export class VideosService {
     };
   }
 
-  private async fetchCaptionTracks(youtubeId: string): Promise<CaptionTrack[] | null> {
+  private async fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
     try {
-      const res = await fetch(`https://www.youtube.com/watch?v=${youtubeId}`, {
-        headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'en-US,en;q=0.9' },
-      });
-      if (!res.ok) return null;
+      // Prefer British English, fall back to any English, then whatever is available
+      const langPriority = ['en-GB', 'en-US', 'en'];
+      let items: TranscriptItem[] | null = null;
 
-      const html = await res.text();
-      return this.extractCaptionTracksFromHtml(html);
-    } catch {
-      return null;
-    }
-  }
-
-  private extractCaptionTracksFromHtml(html: string): CaptionTrack[] | null {
-    const marker = 'ytInitialPlayerResponse = ';
-    const start = html.indexOf(marker);
-    if (start === -1) return null;
-
-    const jsonStart = start + marker.length;
-    let depth = 0;
-    let jsonEnd = jsonStart;
-    for (let i = jsonStart; i < html.length; i++) {
-      if (html[i] === '{') depth++;
-      else if (html[i] === '}') {
-        depth--;
-        if (depth === 0) {
-          jsonEnd = i + 1;
-          break;
+      for (const lang of langPriority) {
+        try {
+          const raw = await YoutubeTranscript.fetchTranscript(youtubeId, { lang });
+          if (raw && raw.length > 0) {
+            items = raw.map((r) => ({
+              text: r.text,
+              offset: Math.round(r.offset),
+              duration: Math.round(r.duration),
+            }));
+            break;
+          }
+        } catch {
+          // try next lang
         }
       }
-    }
 
-    try {
-      const playerResponse = JSON.parse(html.slice(jsonStart, jsonEnd)) as {
-        captions?: {
-          playerCaptionsTracklistRenderer?: { captionTracks?: CaptionTrack[] };
-        };
-      };
-      const tracks =
-        playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      return tracks && tracks.length > 0 ? tracks : null;
+      // Last resort: fetch without specifying a language
+      if (!items) {
+        const raw = await YoutubeTranscript.fetchTranscript(youtubeId);
+        if (raw && raw.length > 0) {
+          items = raw.map((r) => ({
+            text: r.text,
+            offset: Math.round(r.offset),
+            duration: Math.round(r.duration),
+          }));
+        }
+      }
+
+      return items;
     } catch {
       return null;
     }
-  }
-
-  private parseTranscriptXml(xml: string): TranscriptItem[] {
-    const items: TranscriptItem[] = [];
-    const re = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(xml)) !== null) {
-      const text = m[3]
-        .replace(/<[^>]+>/g, '')
-        .replace(/&#39;/g, "'")
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/\n/g, ' ')
-        .trim();
-      if (text) {
-        items.push({ text, offset: Number(m[1]), duration: Number(m[2]) });
-      }
-    }
-    return items;
-  }
-
-  private async fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
-    const tracks = await this.fetchCaptionTracks(youtubeId);
-    if (!tracks) return null;
-
-    const track =
-      tracks.find((t) => t.languageCode === 'en') ??
-      tracks.find((t) => t.languageCode.startsWith('en')) ??
-      tracks[0];
-
-    const captionRes = await fetch(track.baseUrl, {
-      headers: { 'User-Agent': BROWSER_UA },
-    });
-    if (!captionRes.ok) return null;
-
-    const xml = await captionRes.text();
-    const items = this.parseTranscriptXml(xml);
-    return items.length > 0 ? items : null;
   }
 
   private groupIntoSentences(
