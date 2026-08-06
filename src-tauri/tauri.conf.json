@@ -2,12 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "BapEnglish",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.bapenglish.app",
   "build": {
-    "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "frontendDist": "https://learning-ielts-gamma.vercel.app",
+    "devUrl": "https://learning-ielts-gamma.vercel.app",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
   },
   "app": {
     "windows": [
