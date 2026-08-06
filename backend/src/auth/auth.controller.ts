@@ -29,8 +29,17 @@ export class AuthController {
   }
 
   private resolveFrontendUrl(req: Request): string {
-    const rawFrontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    const allowedOrigins = rawFrontendUrl
+    const rawOrigins = [
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL,
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:4173',
+    ]
+      .filter(Boolean)
+      .join(',');
+
+    const allowedOrigins = rawOrigins
       .split(',')
       .map((url) => url.trim().replace(/\/+$/, ''))
       .filter(Boolean);
@@ -55,8 +64,13 @@ export class AuthController {
   googleCallback(@Req() req: RequestWithUser, @Res() res: Response) {
     const token = this.authService.login(req.user);
     const frontendUrl = this.resolveFrontendUrl(req);
+    const isAdmin =
+      frontendUrl === process.env.ADMIN_URL?.replace(/\/+$/, '') ||
+      frontendUrl === 'http://localhost:5173' ||
+      frontendUrl === 'http://localhost:4173';
 
-    return res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
+    const callbackPath = isAdmin ? '/?token=' : '/auth/callback?token=';
+    return res.redirect(`${frontendUrl}${callbackPath}${token}`);
   }
 
   /** Return the currently authenticated user's profile */
