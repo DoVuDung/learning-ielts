@@ -15,6 +15,7 @@ import { AdminService } from './admin.service';
 import {
   UpdateUserPremiumDto,
   UpdateUserRoleDto,
+  AdminCreateUserDto,
   ManualApproveTransactionDto,
   AdminCreateVideoDto,
   AdminUpdateVideoDto,
@@ -38,6 +39,11 @@ export class AdminController {
   @Get('users')
   async getUsers(@Query('search') search?: string) {
     return this.adminService.getUsers(search);
+  }
+
+  @Post('users')
+  async createUser(@Body() dto: AdminCreateUserDto) {
+    return this.adminService.createUser(dto);
   }
 
   @Patch('users/:id/premium')

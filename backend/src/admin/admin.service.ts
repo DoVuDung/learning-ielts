@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcryptjs';
 import { Role } from '../auth/roles.enum';
 import { parseLlmNoteText } from '../words/llm-note.parser';
 import {
@@ -7,11 +9,15 @@ import {
   ManualApproveTransactionDto,
   AdminCreateVideoDto,
   AdminUpdateVideoDto,
+  AdminCreateUserDto,
 } from './dto/admin.dto';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
+  ) {}
 
   async getDashboardStats() {
     const [totalUsers, premiumUsers, totalVideos, revenueAgg, recentTransactions] =
@@ -67,6 +73,30 @@ export class AdminService {
         createdAt: true,
       },
     });
+  }
+
+  async createUser(dto: AdminCreateUserDto) {
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(dto.password, salt);
+
+    const user = await this.usersService.createWithPassword(
+      dto.email,
+      passwordHash,
+      dto.name,
+      dto.role,
+    );
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
   }
 
   async updateUserRole(userId: string, role: Role) {

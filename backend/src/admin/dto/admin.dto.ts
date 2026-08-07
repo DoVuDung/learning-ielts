@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  MinLength,
 } from 'class-validator';
 import { Role } from '../../auth/roles.enum';
 
@@ -22,6 +23,25 @@ export class UpdateUserPremiumDto {
 export class UpdateUserRoleDto {
   @IsEnum(Role)
   role!: Role;
+}
+
+export class AdminCreateUserDto {
+  @IsString()
+  @IsNotEmpty()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  password!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsEnum(Role)
+  @IsOptional()
+  role?: Role;
 }
 
 export class ManualApproveTransactionDto {

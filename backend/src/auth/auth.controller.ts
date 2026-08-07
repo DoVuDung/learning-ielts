@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Req,
   Res,
   UseGuards,
@@ -12,6 +14,7 @@ import { AuthService } from './auth.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthUser } from './dto/auth.dto';
+import { LoginDto } from './dto/login.dto';
 
 interface RequestWithUser extends Request {
   user: AuthUser;
@@ -85,5 +88,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@Res() res: Response) {
     return res.json({ message: 'Logged out successfully' });
+  }
+
+  /** Local Login */
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto) {
+    const user = await this.authService.validateLocalUser(loginDto.email, loginDto.password);
+    const token = this.authService.login(user);
+    return { token, user };
   }
 }

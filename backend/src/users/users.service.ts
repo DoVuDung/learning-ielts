@@ -26,6 +26,10 @@ export class UsersService {
     return this.prisma.user.findUnique({ where: { googleId } });
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }
@@ -41,15 +45,22 @@ export class UsersService {
     }
 
     const name = email.split('@')[0];
-    // Generate a placeholder googleId since the schema requires it
-    const googleId = `provisioned-${email}-${Date.now()}`;
-
     return this.prisma.user.create({
       data: {
         email,
         name,
-        googleId,
       },
+    });
+  }
+
+  async createWithPassword(email: string, passwordHash: string, name: string, role: string = 'USER'): Promise<User> {
+    return this.prisma.user.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+        role: role as any,
+      }
     });
   }
 
