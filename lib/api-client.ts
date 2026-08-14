@@ -141,7 +141,12 @@ export const videosApi = {
 
   get: (id: string) => request<VideoDetail>(`/videos/${id}`),
 
-  import: (data: { url: string; category?: string; level?: string }) =>
+  import: (data: {
+    url: string;
+    category?: string;
+    level?: string;
+    sentences?: Array<{ text: string; startMs: number; endMs: number }>;
+  }) =>
     request<Video>('/videos/import', {
       method: 'POST',
       body: JSON.stringify(data),

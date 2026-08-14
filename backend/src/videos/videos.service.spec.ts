@@ -127,6 +127,32 @@ describe('VideosService', () => {
       expect(mockPrisma.video.create).toHaveBeenCalled();
     });
 
+    it('should import video using client-provided sentences fallback', async () => {
+      mockPrisma.video.findFirst.mockResolvedValue(null);
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ title: 'Fallback Title' }),
+      });
+      mockPrisma.video.create.mockResolvedValue({ id: 'client-fallback-v1', title: 'Fallback Title' });
+
+      const clientSentences = [{ text: 'Hello from client', startMs: 0, endMs: 2000 }];
+      const res = await service.importVideo(
+        { url: 'https://www.youtube.com/watch?v=client12345', sentences: clientSentences },
+        'u1',
+      );
+
+      expect(res).toEqual({ id: 'client-fallback-v1', title: 'Fallback Title' });
+      expect(mockPrisma.video.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sentences: {
+              create: [{ index: 0, text: 'Hello from client', startMs: 0, endMs: 2000 }],
+            },
+          }),
+        }),
+      );
+    });
+
     it('should throw UnprocessableEntityException if no transcript available', async () => {
       mockPrisma.video.findFirst.mockResolvedValue(null);
 

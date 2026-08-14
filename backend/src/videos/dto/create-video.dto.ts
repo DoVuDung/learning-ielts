@@ -18,6 +18,10 @@ export class CreateVideoDto {
   @IsOptional()
   @IsIn(VALID_LEVELS, { message: `level must be one of: ${VALID_LEVELS.join(', ')}` })
   level?: string;
+
+  @ApiPropertyOptional({ description: 'Optional pre-parsed sentence array for client fallback' })
+  @IsOptional()
+  sentences?: Array<{ text: string; startMs: number; endMs: number }>;
 }
 
 export class SaveWordDto {

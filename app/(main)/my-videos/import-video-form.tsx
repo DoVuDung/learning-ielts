@@ -6,6 +6,8 @@ import { Link2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { videosApi } from "@/lib/api-client";
+import { fetchTranscriptClientSide } from "@/lib/youtube-transcript";
+import { extractYoutubeId } from "@/lib/utils";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const CATEGORIES = ["general", "TED", "BBC", "IELTS", "News", "Science", "Business"];
@@ -21,7 +23,7 @@ export function ImportVideoForm() {
   async function handleImport() {
     if (!url.trim()) return;
     setStatus("loading");
-    setMessage("");
+    setMessage("Đang lấy thông tin video & transcript...");
 
     try {
       const data = await videosApi.import({ url, level, category });
@@ -31,11 +33,31 @@ export function ImportVideoForm() {
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Import thất bại";
-      // Try to parse JSON error from BE
       let displayMsg = msg;
       try { displayMsg = JSON.parse(msg).message ?? msg; } catch { /* raw string */ }
+
+      // Client-side fallback if backend cloud IP was blocked by YouTube
+      const youtubeId = extractYoutubeId(url);
+      if (youtubeId && (displayMsg.includes("transcript") || displayMsg.includes("No transcript"))) {
+        setMessage("Máy chủ Vercel bị giới hạn IP bởi YouTube. Đang lấy phụ đề từ trình duyệt...");
+        const clientSentences = await fetchTranscriptClientSide(youtubeId);
+        if (clientSentences && clientSentences.length > 0) {
+          try {
+            const data = await videosApi.import({ url, level, category, sentences: clientSentences });
+            setStatus("success");
+            setMessage(`Đã import thành công: "${data.title}"`);
+            setUrl("");
+            router.refresh();
+            return;
+          } catch (retryErr) {
+            const retryMsg = retryErr instanceof Error ? retryErr.message : "Import thất bại";
+            displayMsg = retryMsg;
+          }
+        }
+      }
+
       setStatus("error");
-      setMessage(displayMsg ?? "Import thất bại");
+      setMessage(displayMsg ?? "Import thất bại. Vui lòng kiểm tra lại link YouTube hoặc chọn video có phụ đề Tiếng Anh.");
     }
   }
 

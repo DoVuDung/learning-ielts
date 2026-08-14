@@ -6,22 +6,19 @@ describe("LessonGrid component", () => {
   const sampleLessons = [
     {
       id: "1",
-      slug: "lesson-1",
       title: "IELTS Listening Practice 1",
-      channel: "IELTS Pro",
-      duration: "10:00",
-      level: "B1" as const,
-      topic: "Daily Life",
-      views: "1.2k",
+      thumbnailUrl: "https://i.ytimg.com/vi/test1/hqdefault.jpg",
+      duration: 600,
+      segments: 10,
+      level: "B1",
     },
     {
       id: "2",
-      slug: "lesson-2",
       title: "IELTS Speaking Part 2",
-      channel: "English Master",
-      duration: "15:30",
-      level: "B2" as const,
-      topic: "Academic",
+      thumbnailUrl: "https://i.ytimg.com/vi/test2/hqdefault.jpg",
+      duration: 930,
+      segments: 15,
+      level: "B2",
     },
   ];
 
