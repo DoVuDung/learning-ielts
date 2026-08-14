@@ -21,7 +21,7 @@
     "test:e2e:report": "playwright show-report",
     "tauri": "tauri",
     "dev:mac": "tauri dev",
-    "build:mac": "tauri build"
+    "build:mac": "IS_TAURI=true tauri build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

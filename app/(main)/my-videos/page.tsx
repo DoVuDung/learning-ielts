@@ -5,6 +5,8 @@ import { LessonGrid } from "@/components/lesson-grid";
 import { ImportVideoForm } from "./import-video-form";
 import type { VideoCardProps } from "@/components/video-card";
 
+export const dynamic = "force-dynamic";
+
 export default async function MyVideosPage() {
   const session = await getSession();
 

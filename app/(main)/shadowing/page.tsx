@@ -3,6 +3,8 @@ import { TopNav } from "@/components/top-nav";
 import { LessonGrid } from "@/components/lesson-grid";
 import type { VideoCardProps } from "@/components/video-card";
 
+export const dynamic = "force-dynamic";
+
 export default async function ShadowingPage() {
   const videos = await prisma.video.findMany({
     orderBy: { createdAt: "desc" },

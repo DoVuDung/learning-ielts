@@ -8,6 +8,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { skillLevel } from "@/lib/skill-level";
 
+export const dynamic = "force-dynamic";
+
 export default async function StatsPage() {
   const session = await getSession();
   if (!session) {

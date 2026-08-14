@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { DictationPlayer } from "./dictation-player";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ videoId: string }>;
 }

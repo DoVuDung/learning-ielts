@@ -3,6 +3,8 @@ import { TopNav } from "@/components/top-nav";
 import { Suspense } from "react";
 import { DictationClient } from "./dictation-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function DictationPage() {
   let allVideos: any[] = [];
 

@@ -4,6 +4,8 @@ import { TopNav } from "@/components/top-nav";
 import { FlashcardReview } from "./flashcard-review";
 import { BookOpen } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 const NEW_PER_DAY = 20;
 const REVIEW_PER_DAY = 200;
 

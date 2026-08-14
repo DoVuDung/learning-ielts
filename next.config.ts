@@ -27,8 +27,10 @@ const securityHeaders = [
   },
 ];
 
+const isStaticExport = process.env.IS_TAURI === "true" || process.env.NEXT_EXPORT === "true";
+
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(isStaticExport ? { output: "export" } : {}),
   turbopack: {
     root: __dirname,
   },

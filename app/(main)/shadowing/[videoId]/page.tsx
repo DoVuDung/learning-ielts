@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ShadowingPlayer } from "./shadowing-player";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: Promise<{ videoId: string }>;
 }
