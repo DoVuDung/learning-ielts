@@ -1,3 +1,5 @@
+import { transcriptApi } from "@/lib/api-client";
+
 export interface TranscriptItem {
   text: string;
   offset: number;
@@ -110,44 +112,15 @@ export async function fetchTranscriptClientSide(
   youtubeId: string,
 ): Promise<{ text: string; startMs: number; endMs: number }[] | null> {
   try {
-    // 1. Try Innertube Android API
-    const res = await fetch("https://www.youtube.com/youtubei/v1/player", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        context: { client: { clientName: "ANDROID", clientVersion: "19.02.39", hl: "en", gl: "US" } },
-        videoId: youtubeId,
-      }),
-    });
-    if (res.ok) {
-      const data = (await res.json()) as any;
-      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      if (tracks && tracks.length > 0) {
-        const track = tracks.find((t: any) => t.languageCode?.startsWith("en")) || tracks[0];
-        if (track?.baseUrl) {
-          const trackUrl = track.baseUrl.includes("fmt=") ? track.baseUrl : `${track.baseUrl}&fmt=json3`;
-          const trackRes = await fetch(trackUrl);
-          if (trackRes.ok) {
-            const rawText = await trackRes.text();
-            let items = parseJson3Subtitles(rawText);
-            if (!items.length) items = parseTranscriptXml(rawText);
-            if (items.length) return groupTranscriptIntoSentences(items);
-          }
-        }
-      }
+    const lines = await transcriptApi.fetch(youtubeId);
+    if (lines && lines.length > 0) {
+      const items: TranscriptItem[] = lines.map((l) => ({
+        text: l.text,
+        offset: l.offset,
+        duration: l.duration,
+      }));
+      return groupTranscriptIntoSentences(items);
     }
-
-    // 2. Try direct timedtext endpoint
-    const langs = ["en", "en-US", "en-GB", "vi"];
-    for (const lang of langs) {
-      const timedRes = await fetch(`https://www.youtube.com/api/timedtext?v=${youtubeId}&lang=${lang}&fmt=json3`);
-      if (timedRes.ok) {
-        const text = await timedRes.text();
-        const items = parseJson3Subtitles(text);
-        if (items.length) return groupTranscriptIntoSentences(items);
-      }
-    }
-
     return null;
   } catch {
     return null;

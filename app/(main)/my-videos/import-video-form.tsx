@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Link2, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Link2, Loader2, CheckCircle2, AlertCircle, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { videosApi } from "@/lib/api-client";
@@ -12,11 +12,36 @@ import { extractYoutubeId } from "@/lib/utils";
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const CATEGORIES = ["general", "TED", "BBC", "IELTS", "News", "Science", "Business"];
 
+function parseManualTranscript(text: string): Array<{ text: string; startMs: number; endMs: number }> {
+  const lines = text
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const sentences: Array<{ text: string; startMs: number; endMs: number }> = [];
+  let currentMs = 0;
+
+  for (const line of lines) {
+    const wordCount = line.split(/\s+/).length;
+    const duration = Math.max(2500, wordCount * 350);
+    sentences.push({
+      text: line,
+      startMs: currentMs,
+      endMs: currentMs + duration,
+    });
+    currentMs += duration + 500;
+  }
+
+  return sentences;
+}
+
 export function ImportVideoForm() {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [level, setLevel] = useState("B2");
   const [category, setCategory] = useState("general");
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualText, setManualText] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -26,6 +51,20 @@ export function ImportVideoForm() {
     setMessage("Đang lấy thông tin video & transcript...");
 
     try {
+      // If manual text is provided, use it directly
+      if (manualText.trim()) {
+        const sentences = parseManualTranscript(manualText);
+        const data = await videosApi.import({ url, level, category, sentences });
+        setStatus("success");
+        setMessage(`Đã import thành công với transcript thủ công: "${data.title}"`);
+        setUrl("");
+        setManualText("");
+        setShowManualInput(false);
+        router.refresh();
+        return;
+      }
+
+      // Standard import attempt
       const data = await videosApi.import({ url, level, category });
       setStatus("success");
       setMessage(`Đã import: "${data.title}"`);
@@ -39,7 +78,7 @@ export function ImportVideoForm() {
       // Client-side fallback if backend cloud IP was blocked by YouTube
       const youtubeId = extractYoutubeId(url);
       if (youtubeId && (displayMsg.includes("transcript") || displayMsg.includes("No transcript"))) {
-        setMessage("Máy chủ Vercel bị giới hạn IP bởi YouTube. Đang lấy phụ đề từ trình duyệt...");
+        setMessage("Đang lấy phụ đề trực tiếp từ YouTube...");
         const clientSentences = await fetchTranscriptClientSide(youtubeId);
         if (clientSentences && clientSentences.length > 0) {
           try {
@@ -57,7 +96,11 @@ export function ImportVideoForm() {
       }
 
       setStatus("error");
-      setMessage(displayMsg ?? "Import thất bại. Vui lòng kiểm tra lại link YouTube hoặc chọn video có phụ đề Tiếng Anh.");
+      setShowManualInput(true);
+      setMessage(
+        "Không thể lấy transcript tự động từ YouTube cho video này. " +
+        "Bạn có thể dán nội dung transcript bên dưới để tạo bài dictation thủ công."
+      );
     }
   }
 
@@ -66,7 +109,7 @@ export function ImportVideoForm() {
       <div className="flex flex-col gap-1">
         <h2 className="text-sm font-semibold text-foreground">Import video từ YouTube</h2>
         <p className="text-xs text-muted-foreground">
-          Dán link YouTube — chúng tôi tự động lấy transcript để tạo bài dictation.
+          Dán link YouTube — hệ thống tự động trích xuất phụ đề để tạo bài dictation.
         </p>
       </div>
 
@@ -128,6 +171,34 @@ export function ImportVideoForm() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Toggle Manual Transcript */}
+      <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+        <button
+          type="button"
+          onClick={() => setShowManualInput(!showManualInput)}
+          className="flex items-center gap-1.5 text-xs text-primary font-medium hover:underline self-start"
+        >
+          <FileText className="size-3.5" />
+          {showManualInput ? "Ẩn nhập transcript thủ công" : "Nhập / Dán transcript thủ công (Tùy chọn)"}
+          {showManualInput ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+
+        {showManualInput && (
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              placeholder="Dán các câu transcript Tiếng Anh vào đây (mỗi câu một dòng)..."
+              rows={4}
+              className="w-full rounded-xl border border-border bg-background p-3 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Mẹo: Mỗi dòng văn bản sẽ được tự động chuyển thành một câu dictation.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Status message */}

@@ -142,19 +142,23 @@ export class VideosService {
   }
 
   private async fetchTranscript(youtubeId: string): Promise<TranscriptItem[] | null> {
-    // Stage 1: Try Innertube Android API (most reliable from cloud provider IPs)
-    const androidItems = await this.fetchInnertubeCaptionTracks(youtubeId, 'ANDROID');
-    if (androidItems && androidItems.length > 0) return androidItems;
+    const clients: Array<'WEB_EMBEDDED_PLAYER' | 'IOS' | 'ANDROID' | 'WEB'> = [
+      'WEB_EMBEDDED_PLAYER',
+      'IOS',
+      'ANDROID',
+      'WEB',
+    ];
 
-    // Stage 2: Try Innertube Web API
-    const webItems = await this.fetchInnertubeCaptionTracks(youtubeId, 'WEB');
-    if (webItems && webItems.length > 0) return webItems;
+    for (const client of clients) {
+      const items = await this.fetchInnertubeCaptionTracks(youtubeId, client);
+      if (items && items.length > 0) return items;
+    }
 
-    // Stage 3: Try direct timedtext endpoint
+    // Direct timedtext endpoint fallback
     const timedtextItems = await this.fetchDirectTimedtext(youtubeId);
     if (timedtextItems && timedtextItems.length > 0) return timedtextItems;
 
-    // Stage 4: Scraper fallback via youtube-transcript library
+    // Scraper fallback via youtube-transcript library
     try {
       const langPriority = ['en-GB', 'en-US', 'en'];
       let items: TranscriptItem[] | null = null;
@@ -204,16 +208,35 @@ export class VideosService {
 
   private async fetchInnertubeCaptionTracks(
     youtubeId: string,
-    clientName: 'ANDROID' | 'WEB',
+    clientName: 'WEB_EMBEDDED_PLAYER' | 'IOS' | 'ANDROID' | 'WEB',
   ): Promise<TranscriptItem[] | null> {
     try {
+      let clientVersion = '2.20240101.00.00';
+      let userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+      if (clientName === 'WEB_EMBEDDED_PLAYER') {
+        clientVersion = '5.20230602.00.00';
+        userAgent =
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+      } else if (clientName === 'IOS') {
+        clientVersion = '19.45.4';
+        userAgent =
+          'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5 like Mac OS X; en_US)';
+      } else if (clientName === 'ANDROID') {
+        clientVersion = '19.02.39';
+        userAgent =
+          'com.google.android.youtube/19.02.39 (Linux; U; Android 14; en_US)';
+      }
+
       const payload = {
         context: {
           client: {
-            clientName: clientName,
-            clientVersion: clientName === 'ANDROID' ? '19.02.39' : '2.20240101.00.00',
+            clientName,
+            clientVersion,
             hl: 'en',
             gl: 'US',
+            contentCheckOk: true,
+            racyCheckOk: true,
           },
         },
         videoId: youtubeId,
@@ -223,10 +246,7 @@ export class VideosService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent':
-            clientName === 'ANDROID'
-              ? 'com.google.android.youtube/19.02.39 (Linux; U; Android 14; en_US)'
-              : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'User-Agent': userAgent,
         },
         body: JSON.stringify(payload),
       });
@@ -242,9 +262,7 @@ export class VideosService {
 
       const url = track.baseUrl.includes('fmt=') ? track.baseUrl : `${track.baseUrl}&fmt=json3`;
       const trackRes = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        },
+        headers: { 'User-Agent': userAgent },
       });
       if (!trackRes.ok) return null;
       const text = await trackRes.text();
