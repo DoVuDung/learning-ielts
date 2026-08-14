@@ -37,6 +37,39 @@ export class TranscriptService {
   }
 
   private async fetchMultiClient(youtubeId: string, lang: string): Promise<{ text: string; offset: number; duration: number }[] | null> {
+    // Stage 1: Inspect watch page HTML and fetch precise caption track (e.g. en-GB, en-US, en, vi)
+    const htmlItems = await this.fetchCaptionsFromWatchHtml(youtubeId);
+    if (htmlItems && htmlItems.length > 0) return htmlItems;
+
+    // Stage 2: Try YoutubeTranscript library with language fallbacks (en-GB, en-US, en, vi)
+    try {
+      const langPriority = [lang, 'en-GB', 'en-US', 'en', 'vi'].filter(
+        (v, i, a) => a.indexOf(v) === i,
+      );
+      for (const l of langPriority) {
+        try {
+          const raw = await YoutubeTranscript.fetchTranscript(youtubeId, { lang: l });
+          if (raw && raw.length > 0) {
+            return raw.map((r) => ({
+              text: r.text,
+              offset: Math.round(r.offset),
+              duration: Math.round(r.duration),
+            }));
+          }
+        } catch {}
+      }
+
+      const raw = await YoutubeTranscript.fetchTranscript(youtubeId);
+      if (raw && raw.length > 0) {
+        return raw.map((r) => ({
+          text: r.text,
+          offset: Math.round(r.offset),
+          duration: Math.round(r.duration),
+        }));
+      }
+    } catch {}
+
+    // Stage 3: Innertube multi-client fallback
     const clients: Array<'WEB_EMBEDDED_PLAYER' | 'IOS' | 'ANDROID' | 'WEB'> = [
       'WEB_EMBEDDED_PLAYER',
       'IOS',
@@ -49,19 +82,68 @@ export class TranscriptService {
       if (items && items.length > 0) return items;
     }
 
-    // Fallback to youtube-transcript library
+    return null;
+  }
+
+  private async fetchCaptionsFromWatchHtml(youtubeId: string): Promise<{ text: string; offset: number; duration: number }[] | null> {
     try {
-      const raw = await YoutubeTranscript.fetchTranscript(youtubeId, { lang });
+      const url = `https://www.youtube.com/watch?v=${youtubeId}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      const marker = 'ytInitialPlayerResponse = ';
+      const start = html.indexOf(marker);
+      if (start === -1) return null;
+
+      const jsonStart = start + marker.length;
+      let depth = 0;
+      let jsonEnd = jsonStart;
+      for (let i = jsonStart; i < html.length; i++) {
+        if (html[i] === '{') depth++;
+        else if (html[i] === '}') {
+          depth--;
+          if (depth === 0) {
+            jsonEnd = i + 1;
+            break;
+          }
+        }
+      }
+
+      const playerResponse = JSON.parse(html.slice(jsonStart, jsonEnd));
+      const tracks = playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      if (!tracks || tracks.length === 0) return null;
+
+      const track =
+        tracks.find((t: any) => t.vssId === '.en' || t.vssId === '.en-GB' || t.vssId === '.en-US') ||
+        tracks.find((t: any) => t.languageCode?.startsWith('en') && t.vssId && !t.vssId.startsWith('a.')) ||
+        tracks.find((t: any) => t.languageCode?.startsWith('en')) ||
+        tracks.find((t: any) => t.languageCode?.startsWith('vi')) ||
+        tracks[0];
+
+      if (!track) return null;
+
+      const raw = await YoutubeTranscript.fetchTranscript(youtubeId, {
+        lang: track.languageCode || 'en',
+      });
+
       if (raw && raw.length > 0) {
         return raw.map((r) => ({
-          text: r.text,
+          text: r.text.replaceAll('\n', ' ').trim(),
           offset: Math.round(r.offset),
           duration: Math.round(r.duration),
         }));
       }
-    } catch {}
 
-    return null;
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   private async fetchInnertubeCaptionTracks(

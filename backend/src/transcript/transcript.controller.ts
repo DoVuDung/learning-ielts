@@ -32,7 +32,10 @@ export class TranscriptController {
       return await this.transcriptService.fetch(videoId, lang);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to fetch transcript';
-      const status = msg.toLowerCase().includes('language') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_GATEWAY;
+      const status =
+        msg.toLowerCase().includes('language') || msg.toLowerCase().includes('no transcript')
+          ? HttpStatus.NOT_FOUND
+          : HttpStatus.UNPROCESSABLE_ENTITY;
       throw new HttpException(msg, status);
     }
   }
