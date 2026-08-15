@@ -22,8 +22,8 @@ export interface WordEntry {
   partOfSpeech: string;
   band: string;
   enDefinition: string;
-  viDefinition: string;
-  examples: { en: string; vi: string }[];
+  viDefinition?: string;
+  examples: { en: string; vi?: string }[];
   collocations: string[];
   synonyms: string[];
 }
@@ -201,21 +201,27 @@ export function DictionaryClient() {
       const firstItem = data[0];
       const meaning = firstItem.meanings?.[0];
       const def = meaning?.definitions?.[0]?.definition || "No definition found.";
-      const ex = meaning?.definitions?.[0]?.example || `Example using '${cleanWord}'.`;
+      const ex = meaning?.definitions?.[0]?.example;
+      const allSynonyms = Array.from(
+        new Set(
+          (firstItem.meanings || [])
+            .flatMap((m: any) => m.synonyms || [])
+            .filter(Boolean)
+        )
+      ).slice(0, 4) as string[];
 
       setEntry({
         word: cleanWord,
         phonetic: firstItem.phonetic || `/${cleanWord}/`,
         partOfSpeech: meaning?.partOfSpeech || "word",
-        band: "IELTS Academic",
+        band: "IELTS / Academic",
         enDefinition: def,
-        viDefinition: "Nghĩa tiếng Việt đang cập nhật tự động cho từ vựng này.",
-        examples: [{ en: ex, vi: `Ví dụ sử dụng '${cleanWord}' trong ngữ cảnh thực tế.` }],
-        collocations: [`${cleanWord} effectively`, `use ${cleanWord}`],
-        synonyms: meaning?.synonyms?.slice(0, 3) || [],
+        examples: ex ? [{ en: ex }] : [{ en: `The term "${cleanWord}" is used in formal writing.` }],
+        collocations: [],
+        synonyms: allSynonyms,
       });
     } catch {
-      setError("Không tìm thấy từ này. Vui lòng kiểm tra lại chính tả hoặc chọn từ gợi ý bên dưới.");
+      setError("Không tìm thấy từ này trong từ điển. Vui lòng kiểm tra lại chính tả hoặc chọn từ gợi ý bên dưới.");
       setEntry(null);
     } finally {
       setLoading(false);
@@ -238,7 +244,7 @@ export function DictionaryClient() {
       try {
         await wordsApi.save({
           word: w.word,
-          definition: `${w.viDefinition} (${w.enDefinition})`,
+          definition: w.viDefinition ? `${w.viDefinition} (${w.enDefinition})` : w.enDefinition,
           context: w.examples[0]?.en || "",
         });
         setSavedWords((prev) => new Set(prev).add(w.word));
@@ -383,20 +389,22 @@ export function DictionaryClient() {
 
               {/* Definitions */}
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                    Định nghĩa tiếng Việt
-                  </h3>
-                  <p className="text-lg font-bold text-primary leading-relaxed">
-                    {entry.viDefinition}
-                  </p>
-                </div>
+                {entry.viDefinition && (
+                  <div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                      Định nghĩa tiếng Việt
+                    </h3>
+                    <p className="text-lg font-bold text-primary leading-relaxed">
+                      {entry.viDefinition}
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    English Academic Definition
+                    {entry.viDefinition ? "English Academic Definition" : "English Definition"}
                   </h3>
-                  <p className="text-sm text-foreground/90 leading-relaxed">
+                  <p className="text-base font-semibold text-foreground leading-relaxed">
                     {entry.enDefinition}
                   </p>
                 </div>
@@ -416,51 +424,59 @@ export function DictionaryClient() {
                       <p className="text-sm font-semibold text-foreground">
                         &ldquo;{ex.en}&rdquo;
                       </p>
-                      <p className="text-xs text-muted-foreground italic">
-                        → {ex.vi}
-                      </p>
+                      {ex.vi && (
+                        <p className="text-xs text-muted-foreground italic">
+                          → {ex.vi}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Collocations & Synonyms */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border/80">
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Layers className="size-3.5 text-primary" />
-                    <span>Collocations phổ biến</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {entry.collocations.map((col) => (
-                      <span
-                        key={col}
-                        className="px-2.5 py-1 rounded-lg bg-background border border-border text-xs text-foreground font-medium"
-                      >
-                        {col}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              {(entry.collocations.length > 0 || entry.synonyms.length > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border/80">
+                  {entry.collocations.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Layers className="size-3.5 text-primary" />
+                        <span>Collocations phổ biến</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {entry.collocations.map((col) => (
+                          <span
+                            key={col}
+                            className="px-2.5 py-1 rounded-lg bg-background border border-border text-xs text-foreground font-medium"
+                          >
+                            {col}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-                <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Tag className="size-3.5 text-amber-400" />
-                    <span>Từ đồng nghĩa (Synonyms)</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {entry.synonyms.map((syn) => (
-                      <button
-                        key={syn}
-                        onClick={() => void lookupWord(syn)}
-                        className="px-2.5 py-1 rounded-lg bg-background border border-border text-xs text-amber-400 font-medium hover:border-amber-400/50 transition-colors"
-                      >
-                        {syn}
-                      </button>
-                    ))}
-                  </div>
+                  {entry.synonyms.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <Tag className="size-3.5 text-amber-400" />
+                        <span>Từ đồng nghĩa (Synonyms)</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5">
+                        {entry.synonyms.map((syn) => (
+                          <button
+                            key={syn}
+                            onClick={() => lookupWord(syn)}
+                            className="px-2.5 py-1 rounded-lg bg-background border border-border hover:border-primary/40 text-xs text-foreground hover:text-primary font-medium transition-colors cursor-pointer"
+                          >
+                            {syn}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

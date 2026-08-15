@@ -142,14 +142,14 @@ export function SpeakingChat() {
               <p>• {t.speakingTip3}</p>
             </div>
 
-            {/* API key input */}
+            {/* Optional Custom API key */}
             <div className="w-full max-w-sm flex flex-col gap-2">
               <button
                 onClick={() => setShowKeyInput((v) => !v)}
                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start"
               >
                 <Key className="size-3" />
-                {apiKey ? "API key saved ✓" : "Set Anthropic API key"}
+                {apiKey ? "Custom API key đã bật ✓" : "Tùy chọn: Nhập API key riêng"}
               </button>
               {showKeyInput && (
                 <div className="flex gap-2">
@@ -157,7 +157,7 @@ export function SpeakingChat() {
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-ant-..."
+                    placeholder="sk-ant-... (để trống nếu dùng server key)"
                     className="flex-1 text-xs h-8"
                   />
                   <Button
@@ -166,7 +166,7 @@ export function SpeakingChat() {
                     className="h-8 text-xs"
                     onClick={() => { saveApiKey(apiKey); setShowKeyInput(false); }}
                   >
-                    Save
+                    Lưu
                   </Button>
                 </div>
               )}

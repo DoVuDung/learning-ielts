@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { NotificationsPopover } from "@/components/notifications-popover";
 import {
   BookOpen,
@@ -15,6 +16,7 @@ import {
   Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@/lib/user-context";
 
 interface StatItemProps {
   icon: React.ReactNode;
@@ -54,6 +56,17 @@ export function TopNav({
   showSearch = false,
 }: Readonly<TopNavProps>) {
   const [notifOpen, setNotifOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { stats } = useUser();
+  const router = useRouter();
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      router.push(`/dictation?category=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const streakDisplay = stats?.streakDays ?? 0;
 
   return (
     <header className="flex items-center justify-between px-6 py-3.5 border-b border-border bg-background/90 backdrop-blur-md sticky top-0 z-30 transition-all">
@@ -79,7 +92,10 @@ export function TopNav({
             <Search className="size-4 absolute left-3 text-muted-foreground pointer-events-none" />
             <input
               type="text"
-              placeholder="Tìm kiếm bài học, từ vựng..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Tìm kiếm bài học, chủ đề... (Enter)"
               className="w-full bg-card/80 border border-border rounded-full py-1.5 pl-9 pr-4 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
@@ -89,27 +105,29 @@ export function TopNav({
           <div className="flex items-center gap-6">
             <StatItem
               icon={<BookOpen className="size-4" />}
-              value={0}
-              label="đang học"
+              value={stats?.todaySentencesDone ?? 0}
+              label="câu hôm nay"
             />
             <StatItem
               icon={<CheckCircle2 className="size-4 text-emerald-500" />}
-              value={0}
-              label="đã hoàn thành"
+              value={stats?.totalWordsSaved ?? 0}
+              label="từ đã lưu"
               color="text-emerald-400"
             />
             <StatItem
               icon={<TrendingUp className="size-4" />}
-              value="0%"
-              label="trung bình"
+              value={`${streakDisplay} ngày`}
+              label="chuỗi"
+              color="text-amber-400"
             />
             <Button
               variant="outline"
               size="sm"
+              onClick={() => router.push("/dictation")}
               className="gap-2 border-border text-foreground hover:bg-white/5"
             >
               <LayoutGrid className="size-4" />
-              <span className="text-xs">Xem chủ đề</span>
+              <span className="text-xs">Xem bài học</span>
             </Button>
           </div>
         ) : (
@@ -123,10 +141,10 @@ export function TopNav({
               <span className="text-xs font-bold tracking-wide">Nâng cấp PRO</span>
             </Link>
 
-            {/* Streak Indicator matching V3 */}
+            {/* Streak Indicator with dynamic value */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
               <Flame className="size-3.5 fill-amber-400 text-amber-400 animate-pulse" />
-              <span className="text-xs font-bold">12 Ngày</span>
+              <span className="text-xs font-bold">{streakDisplay} Ngày</span>
             </div>
 
             <div className="flex items-center gap-1 border-l border-border pl-3 relative">
@@ -136,7 +154,9 @@ export function TopNav({
                 className="size-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors relative"
               >
                 <Bell className="size-4" />
-                <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary animate-pulse" />
+                {(stats?.dueCardsCount ?? 0) > 0 && (
+                  <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary animate-pulse" />
+                )}
               </button>
 
               {notifOpen && (
@@ -165,3 +185,4 @@ export function TopNav({
     </header>
   );
 }
+

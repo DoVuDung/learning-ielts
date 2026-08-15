@@ -22,6 +22,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+import { usersApi } from "@/lib/api-client";
+
 interface UpgradePlan {
   id: string;
   name: string;
@@ -130,58 +132,31 @@ export default function UpgradePage() {
     setProcessingPayment(true);
 
     try {
-      const response = await fetch("http://localhost:3001/users/me/upgrade", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          orderId: orderId,
-          plan: activeGatewayPlan.id,
-          durationDays: activeGatewayPlan.durationDays,
-          amount: activeGatewayPlan.amount,
-        }),
+      const data = await usersApi.upgrade({
+        orderId: orderId,
+        plan: activeGatewayPlan.id,
+        durationDays: activeGatewayPlan.durationDays,
+        amount: activeGatewayPlan.amount,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setResult({
-          success: true,
-          message:
-            "Xác nhận thanh toán VietQR thành công! Tài khoản đã nâng cấp PRO với giao dịch ACID.",
-          orderId: data.transaction?.orderId ?? orderId,
-          expiresAt:
-            data.user?.premiumExpiresAt
-              ? new Date(data.user.premiumExpiresAt).toLocaleDateString("vi-VN")
-              : "Vĩnh viễn",
-          idempotent: data.idempotent,
-        });
-      } else {
-        // Offline / fallback simulation
-        await new Promise((r) => setTimeout(r, 800));
-        setResult({
-          success: true,
-          message:
-            "[Mô phỏng VietQR thành công] Giao dịch Napas247 đã được ghi nhận tự động bằng khóa ACID Serializable.",
-          orderId: orderId,
-          expiresAt: new Date(
-            Date.now() + activeGatewayPlan.durationDays * 86400 * 1000,
-          ).toLocaleDateString("vi-VN"),
-          idempotent: false,
-        });
-      }
-    } catch {
-      await new Promise((r) => setTimeout(r, 800));
       setResult({
         success: true,
         message:
-          "[Mô phỏng VietQR thành công] Hệ thống đã xác thực thanh toán VietQR với khóa ACID Serializable.",
+          "Xác nhận thanh toán VietQR thành công! Tài khoản đã được nâng cấp lên gói PRO.",
+        orderId: data.transaction?.orderId ?? orderId,
+        expiresAt:
+          data.user?.premiumExpiresAt
+            ? new Date(data.user.premiumExpiresAt).toLocaleDateString("vi-VN")
+            : "Vĩnh viễn",
+        idempotent: data.idempotent,
+      });
+    } catch (err: any) {
+      setResult({
+        success: false,
+        message:
+          err.message ||
+          "Không thể kết nối đến máy chủ thanh toán để xác nhận giao dịch. Vui lòng kiểm tra lại kết nối hoặc thử lại sau.",
         orderId: orderId,
-        expiresAt: new Date(
-          Date.now() + activeGatewayPlan.durationDays * 86400 * 1000,
-        ).toLocaleDateString("vi-VN"),
-        idempotent: false,
       });
     } finally {
       setProcessingPayment(false);

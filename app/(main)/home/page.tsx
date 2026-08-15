@@ -111,12 +111,17 @@ const features: Feature[] = [
 ];
 
 export default function HomePage() {
-  const { user, loading } = useUser();
+  const { user, stats, loading } = useUser();
   const [target, setTarget] = useState<UserTarget | null>(null);
 
   useEffect(() => {
     usersApi.getTarget().then(setTarget).catch(() => {});
   }, []);
+
+  const streakCount = stats?.streakDays ?? 0;
+  const todayDone = stats?.todaySentencesDone ?? 0;
+  const goalSentences = stats?.dailyGoalSentences ?? (target?.dailyMinutesTarget ? Math.max(10, Math.round(target.dailyMinutesTarget * 0.7)) : 20);
+  const progressPct = Math.min(100, Math.round((todayDone / Math.max(1, goalSentences)) * 100));
 
   return (
     <>
@@ -144,9 +149,18 @@ export default function HomePage() {
                 ! 👋
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Bạn đang giữ chuỗi luyện tập{" "}
-                <span className="text-amber-400 font-bold">12 ngày liên tiếp</span>
-                . Hoàn thành bài Dictation hôm nay để duy trì phong độ cực đỉnh!
+                {streakCount > 0 ? (
+                  <>
+                    Bạn đang giữ chuỗi luyện tập{" "}
+                    <span className="text-amber-400 font-bold">{streakCount} ngày liên tiếp</span>
+                    . Hoàn thành bài Dictation hôm nay để duy trì phong độ cực đỉnh!
+                  </>
+                ) : (
+                  <>
+                    Bắt đầu bài Dictation đầu tiên hôm nay để xác lập chuỗi luyện tập{" "}
+                    <span className="text-amber-400 font-bold">Streak</span> của bạn!
+                  </>
+                )}
               </p>
             </div>
 
@@ -188,13 +202,13 @@ export default function HomePage() {
                     Mục tiêu ngày hôm nay
                   </span>
                   <span className="text-[11px] font-semibold text-muted-foreground">
-                    15 / 20 câu Dictation
+                    {todayDone} / {goalSentences} câu Dictation
                   </span>
                 </div>
                 <div className="w-48 sm:w-64 h-2 bg-background rounded-full overflow-hidden mt-1.5 border border-border">
                   <div
                     className="h-full bg-gradient-to-r from-primary to-amber-400 rounded-full transition-all duration-500"
-                    style={{ width: "75%" }}
+                    style={{ width: `${progressPct}%` }}
                   />
                 </div>
               </div>

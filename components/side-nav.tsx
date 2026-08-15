@@ -70,7 +70,6 @@ const navSections: NavSection[] = [
         icon: BookMarked,
         label: "Danh sách từ",
         href: "/word-lists",
-        badge: "0",
       },
       { icon: BookOpen, label: "Từ điển AI", href: "/dictionary" },
     ],
@@ -285,7 +284,7 @@ export function SideNav({
                 {loading ? "Đang tải…" : user?.name || "Tài khoản"}
               </span>
               <span className="text-[10px] font-medium text-primary truncate mt-0.5">
-                B2 Upper Intermediate
+                {user?.currentLevel || (user?.isPremium ? "PRO Member" : "IELTS Prep")}
               </span>
             </div>
             <ChevronUp

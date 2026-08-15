@@ -303,6 +303,27 @@ export interface AssessmentResult {
   createdAt: string;
 }
 
+export interface UserStatsSummary {
+  streakDays: number;
+  todaySentencesDone: number;
+  dailyGoalSentences: number;
+  totalWordsSaved: number;
+  dueCardsCount: number;
+}
+
+export interface UpgradeAccountResponse {
+  user: any;
+  transaction: {
+    id: string;
+    orderId: string;
+    amount: number;
+    plan: string;
+    durationDays: number;
+    status: string;
+  };
+  idempotent: boolean;
+}
+
 export const usersApi = {
   getTarget: () => request<UserTarget>('/users/me/target'),
 
@@ -323,5 +344,86 @@ export const usersApi = {
     }),
 
   getAssessments: () => request<AssessmentResult[]>('/users/me/assessments'),
+
+  upgrade: (data: {
+    orderId: string;
+    plan: string;
+    durationDays: number;
+    amount: number;
+  }) =>
+    request<UpgradeAccountResponse>('/users/me/upgrade', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getStatsSummary: async (): Promise<UserStatsSummary> => {
+    try {
+      const summary = await request<UserStatsSummary>('/users/me/stats-summary');
+      return summary;
+    } catch {
+      // Fallback calculation via available progress and target APIs
+      try {
+        const [progressList, target, words] = await Promise.all([
+          request<DictationProgress[]>('/progress').catch(() => []),
+          request<UserTarget>('/users/me/target').catch(() => null),
+          request<Note[]>('/words').catch(() => []),
+        ]);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const todaySentences = (progressList || [])
+          .filter((p: any) => p.updatedAt && p.updatedAt.slice(0, 10) === today)
+          .reduce((sum, p) => sum + (p.sentencesDone || 0), 0);
+
+        // Estimate streak days based on completed progress items
+        const activeDates = new Set(
+          (progressList || [])
+            .map((p: any) => p.updatedAt?.slice(0, 10))
+            .filter(Boolean)
+        );
+
+        let streak = 0;
+        const checkDate = new Date();
+        while (true) {
+          const dateStr = checkDate.toISOString().slice(0, 10);
+          if (activeDates.has(dateStr)) {
+            streak++;
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else if (streak === 0 && checkDate.toISOString().slice(0, 10) === today) {
+            // Check yesterday if nothing yet done today
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+
+        const dueCount = (words || []).reduce((acc, note) => {
+          const dueCards = (note.cards || []).filter(
+            (c) => c.due && new Date(c.due) <= new Date()
+          );
+          return acc + dueCards.length;
+        }, 0);
+
+        const dailyMinutes = target?.dailyMinutesTarget ?? 30;
+        const dailyGoal = Math.max(10, Math.round(dailyMinutes * 0.7));
+
+        return {
+          streakDays: streak,
+          todaySentencesDone: todaySentences,
+          dailyGoalSentences: dailyGoal,
+          totalWordsSaved: words?.length || 0,
+          dueCardsCount: dueCount,
+        };
+      } catch {
+        return {
+          streakDays: 0,
+          todaySentencesDone: 0,
+          dailyGoalSentences: 20,
+          totalWordsSaved: 0,
+          dueCardsCount: 0,
+        };
+      }
+    }
+  },
 };
+
 

@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useUser } from "@/lib/user-context";
+
 export interface AppNotification {
   id: string;
   title: string;
@@ -27,89 +29,110 @@ export interface AppNotification {
   linkLabel?: string;
 }
 
-const DEFAULT_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "notif-1",
-    title: "Chuỗi luyện tập 12 ngày liên tiếp! 🔥",
-    message: "Tuyệt vời! Hoàn thành thêm 1 bài Dictation hôm nay để giữ vững phong độ Streak của bạn.",
-    time: "Vừa xong",
-    type: "streak",
-    unread: true,
-    link: "/dictation",
-    linkLabel: "Luyện Dictation ngay",
-  },
-  {
-    id: "notif-2",
-    title: "Cập nhật Kiểm tra năng lực CEFR & IELTS",
-    message: "Tính năng đánh giá trình độ và cài đặt lộ trình IELTS cá nhân hóa vừa ra mắt. Khám phá ngay!",
-    time: "2 giờ trước",
-    type: "achievement",
-    unread: true,
-    link: "/assessment",
-    linkLabel: "Kiểm tra năng lực",
-  },
-  {
-    id: "notif-3",
-    title: "Gợi ý từ vựng FSRS cần ôn tập",
-    message: "Bạn có 15 từ vựng sắp đến thời điểm ôn tập lại trong Spaced Repetition.",
-    time: "Hôm qua",
-    type: "study",
-    unread: false,
-    link: "/vocabulary",
-    linkLabel: "Ôn từ vựng",
-  },
-  {
-    id: "notif-4",
-    title: "Chào mừng đến với IELTS Prep V3 ✨",
-    message: "Trải nghiệm giao diện mới với tốc độ tối ưu và chấm điểm phát âm AI chính xác hơn.",
-    time: "3 ngày trước",
-    type: "system",
-    unread: false,
-  },
-];
-
 interface NotificationsPopoverProps {
   onClose?: () => void;
 }
 
 export function NotificationsPopover({ onClose }: Readonly<NotificationsPopoverProps>) {
-  const [notifications, setNotifications] = useState<AppNotification[]>(DEFAULT_NOTIFICATIONS);
+  const { user, stats } = useUser();
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("bap_notifications");
-      if (saved) {
-        setNotifications(JSON.parse(saved));
-      }
-    } catch {
-      // use defaults
-    }
+      const savedRead = localStorage.getItem("bap_notifications_read");
+      if (savedRead) setReadIds(new Set(JSON.parse(savedRead)));
+      const savedDismissed = localStorage.getItem("bap_notifications_dismissed");
+      if (savedDismissed) setDismissedIds(new Set(JSON.parse(savedDismissed)));
+    } catch {}
   }, []);
 
-  const saveToStorage = (updated: AppNotification[]) => {
-    setNotifications(updated);
-    try {
-      localStorage.setItem("bap_notifications", JSON.stringify(updated));
-    } catch {
-      // ignore
+  const dynamicNotifications = React.useMemo<AppNotification[]>(() => {
+    const list: AppNotification[] = [];
+
+    // Due flashcards notification
+    if ((stats?.dueCardsCount ?? 0) > 0) {
+      list.push({
+        id: `notif-due-${stats?.dueCardsCount}`,
+        title: "Từ vựng FSRS cần ôn tập 📚",
+        message: `Bạn có ${stats?.dueCardsCount} thẻ từ vựng đã đến thời điểm ôn tập lại hôm nay.`,
+        time: "Hôm nay",
+        type: "study",
+        unread: !readIds.has(`notif-due-${stats?.dueCardsCount}`),
+        link: "/vocabulary",
+        linkLabel: "Ôn từ vựng ngay",
+      });
     }
-  };
+
+    // Streak notification
+    if ((stats?.streakDays ?? 0) > 0) {
+      list.push({
+        id: `notif-streak-${stats?.streakDays}`,
+        title: `Chuỗi luyện tập ${stats?.streakDays} ngày liên tiếp! 🔥`,
+        message: "Tuyệt vời! Hoàn thành bài Dictation hôm nay để giữ vững phong độ Streak của bạn.",
+        time: "Hôm nay",
+        type: "streak",
+        unread: !readIds.has(`notif-streak-${stats?.streakDays}`),
+        link: "/dictation",
+        linkLabel: "Luyện Dictation",
+      });
+    }
+
+    // Assessment reminder
+    if (!user?.currentLevel) {
+      list.push({
+        id: "notif-assessment-invite",
+        title: "Kiểm tra năng lực CEFR & IELTS 🎯",
+        message: "Làm bài test 5 phút để xác định trình độ và nhận lộ trình học tập cá nhân hóa.",
+        time: "Gợi ý",
+        type: "achievement",
+        unread: !readIds.has("notif-assessment-invite"),
+        link: "/assessment",
+        linkLabel: "Kiểm tra năng lực",
+      });
+    }
+
+    // Welcome notification
+    list.push({
+      id: "notif-welcome-system",
+      title: "Chào mừng đến với IELTS Master Prep ✨",
+      message: "Hệ thống luyện nghe nói phản xạ với AI, Spaced Repetition và chấm điểm tự động.",
+      time: "Hệ thống",
+      type: "system",
+      unread: !readIds.has("notif-welcome-system"),
+      link: "/home",
+      linkLabel: "Khám phá trang chủ",
+    });
+
+    return list.filter((item) => !dismissedIds.has(item.id));
+  }, [stats, user, readIds, dismissedIds]);
 
   const markAllRead = () => {
-    saveToStorage(notifications.map((n) => ({ ...n, unread: false })));
+    const allIds = new Set([...readIds, ...dynamicNotifications.map((n) => n.id)]);
+    setReadIds(allIds);
+    try {
+      localStorage.setItem("bap_notifications_read", JSON.stringify(Array.from(allIds)));
+    } catch {}
   };
 
   const markItemRead = (id: string) => {
-    saveToStorage(
-      notifications.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+    const updated = new Set(readIds).add(id);
+    setReadIds(updated);
+    try {
+      localStorage.setItem("bap_notifications_read", JSON.stringify(Array.from(updated)));
+    } catch {}
   };
 
   const deleteItem = (id: string) => {
-    saveToStorage(notifications.filter((n) => n.id !== id));
+    const updated = new Set(dismissedIds).add(id);
+    setDismissedIds(updated);
+    try {
+      localStorage.setItem("bap_notifications_dismissed", JSON.stringify(Array.from(updated)));
+    } catch {}
   };
 
+  const notifications = dynamicNotifications;
   const filtered = notifications.filter((n) =>
     filter === "unread" ? n.unread : true
   );
